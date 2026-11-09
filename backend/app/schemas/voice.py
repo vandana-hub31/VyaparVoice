@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+﻿from typing import Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
@@ -40,10 +40,11 @@ class VoiceConfirmRequest(BaseModel):
 class VoiceSynthesisRequest(BaseModel):
     text: str
     language: Optional[str] = "en-IN"
-    voice: Optional[str] = "Nalini"
+    voice: Optional[str] = "Shivani"
     speed: Optional[float] = 1.0
 
 class VoiceSynthesisResponse(BaseModel):
     audio_base64: str
     mime_type: str = "audio/wav"
+
 

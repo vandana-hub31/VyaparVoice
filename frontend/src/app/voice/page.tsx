@@ -123,7 +123,7 @@ export default function VoiceAssistantPage() {
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/wav" });
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         stream.getTracks().forEach((track) => track.stop());
         await handleAudioUpload(audioBlob);
       };
@@ -147,7 +147,8 @@ export default function VoiceAssistantPage() {
     setProcessing(true);
     try {
       const formData = new FormData();
-      formData.append("file", blob, "voice_input.wav");
+      const extension = blob.type.includes("webm") ? "webm" : blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "audio";
+      formData.append("file", blob, `voice_input.${extension}`);
       formData.append("language", language === "en" ? "indic-auto" : `${language}-IN`);
 
       const transcribeRes = await api.transcribeAudio(formData);
@@ -169,6 +170,20 @@ export default function VoiceAssistantPage() {
       }
     } catch (err: any) {
       console.error("Transcription error:", err);
+      const isMissingKey = err?.message?.includes("GNANI_API_KEY");
+      const errorMsg = isMissingKey
+        ? "Gnani Prisma STT: GNANI_API_KEY is not configured in backend/.env yet. Please add your competition key from https://app.gnani.ai to backend/.env, or use the text box below to test."
+        : (err?.message || "Audio transcription failed. Please try speaking again or type your command below.");
+
+      setInteractions((prev) => [
+        ...prev,
+        {
+          id: `err-${Date.now()}`,
+          sender: "assistant",
+          text: errorMsg,
+          timestamp: new Date()
+        }
+      ]);
     } finally {
       setProcessing(false);
     }
@@ -543,4 +558,8 @@ export default function VoiceAssistantPage() {
     </div>
   );
 }
+
+
+
+
 

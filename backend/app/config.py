@@ -6,8 +6,8 @@ from pydantic import field_validator
 class Settings(BaseSettings):
     APP_NAME: str = "VyaparVoice"
     DEBUG: bool = True
-    DATABASE_URL: str = "postgresql+psycopg://postgres@localhost:5433/vyaparvoice"
-    TEST_DATABASE_URL: str = "postgresql+psycopg://postgres@localhost:5433/vyaparvoice_test"
+    DATABASE_URL: str = "postgresql+psycopg://postgres@localhost:5432/vyaparvoice"
+    TEST_DATABASE_URL: str = "postgresql+psycopg://postgres@localhost:5432/vyaparvoice_test"
     SECRET_KEY: str = "vyaparvoice_super_secret_jwt_key_2026_gnani_ai_challenge"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8000"]

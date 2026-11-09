@@ -1,4 +1,4 @@
-from typing import List, Optional
+﻿from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -93,7 +93,8 @@ async def confirm_voice_action(
     return await VoiceOrchestrator.confirm_action(
         db=db,
         token=request.confirmation_token,
-        confirmed=request.confirmed
+        confirmed=request.confirmed,
+        current_user_id=current_user.id
     )
 
 @router.post("/synthesize", response_model=VoiceSynthesisResponse)
@@ -104,7 +105,7 @@ async def synthesize_speech(
     audio_b64 = await GnaniService.synthesize_speech(
         text=request.text,
         language=request.language or "en-IN",
-        voice=request.voice or "Nalini",
+        voice=request.voice or "Shivani",
         speed=request.speed or 1.0
     )
     if not audio_b64:
@@ -133,4 +134,5 @@ def get_voice_history(
             "created_at": i.created_at.isoformat()
         } for i in interactions
     ]
+
 
