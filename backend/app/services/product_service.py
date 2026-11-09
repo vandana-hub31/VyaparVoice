@@ -10,6 +10,85 @@ from app.models.inventory import InventoryTransaction
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.schemas.inventory import InventoryAdjustment
 
+PRODUCT_SYNONYMS = {
+    # Kannada
+    "ಹಾಲು": ["milk", "nandini milk", "dairy"],
+    "ಅಕ್ಕಿ": ["rice", "sona masoori", "basmati"],
+    "ಮೊಸರು": ["curd", "dahi"],
+    "ಬೆಣ್ಣೆ": ["butter"],
+    "ತುಪ್ಪ": ["ghee"],
+    "ಎಣ್ಣೆ": ["oil", "sunflower"],
+    "ಸಕ್ಕರೆ": ["sugar"],
+    "ಉಪ್ಪು": ["salt"],
+    "ಬೇಳೆ": ["dal", "toor dal", "moong"],
+    "ತೊಗರಿ ಬೇಳೆ": ["toor dal", "dal"],
+    "ಗೋಧಿ": ["atta", "wheat", "flour"],
+    "ಹಿಟ್ಟು": ["atta", "flour"],
+    "ಟೀ": ["tea"],
+    "ಚಹಾ": ["tea"],
+    "ಕಾಫಿ": ["coffee"],
+    "ಮೊಟ್ಟೆ": ["egg", "eggs"],
+    "ಸೋಪು": ["soap"],
+    "ಬಿಸ್ಕತ್ತು": ["biscuit", "parle", "good day"],
+    "ಬಿಸ್ಕೆಟ್": ["biscuit", "parle", "good day"],
+
+    # Hindi
+    "दूध": ["milk", "nandini milk", "dairy"],
+    "चावल": ["rice", "sona masoori", "basmati"],
+    "दही": ["curd"],
+    "मक्खन": ["butter"],
+    "घी": ["ghee"],
+    "तेल": ["oil", "sunflower"],
+    "चीनी": ["sugar"],
+    "शक्कर": ["sugar"],
+    "नमक": ["salt"],
+    "दाल": ["dal", "toor dal", "chana dal", "moong dal"],
+    "आटा": ["atta", "flour", "wheat"],
+    "चाय": ["tea"],
+    "कॉफ़ी": ["coffee"],
+    "कॉफी": ["coffee"],
+    "अंडा": ["egg", "eggs"],
+    "अंडे": ["egg", "eggs"],
+    "साबुन": ["soap"],
+    "पनीर": ["paneer"],
+    "बिस्कुट": ["biscuit", "parle", "good day"],
+
+    # Malayalam
+    "പാൽ": ["milk", "nandini milk", "dairy"],
+    "അരി": ["rice", "sona masoori", "basmati"],
+    "തൈര്": ["curd"],
+    "വെണ്ണ": ["butter"],
+    "നെയ്യ്": ["ghee"],
+    "എണ്ണ": ["oil", "sunflower"],
+    "വെളിച്ചെണ്ണ": ["oil", "coconut"],
+    "പഞ്ചസാര": ["sugar"],
+    "ഉപ്പ്": ["salt"],
+    "പരിപ്പ്": ["dal", "toor dal", "moong"],
+    "ആട്ട": ["atta", "flour"],
+    "പൊടി": ["atta", "flour", "powder"],
+    "ചായ": ["tea"],
+    "കാപ്പി": ["coffee"],
+    "മുട്ട": ["egg", "eggs"],
+    "സോപ്പ്": ["soap"],
+    "ബിസ്ക്കറ്റ്": ["biscuit", "parle", "good day"],
+
+    # Tamil
+    "பால்": ["milk", "nandini milk"],
+    "அரிசி": ["rice", "sona masoori", "basmati"],
+    "தயிர்": ["curd"],
+    "வெண்ணெய்": ["butter"],
+    "நெய்": ["ghee"],
+    "எண்ணெய்": ["oil", "sunflower"],
+    "சர்க்கரை": ["sugar"],
+    "உப்பு": ["salt"],
+    "பருப்பு": ["dal", "toor dal"],
+    "முட்டை": ["egg", "eggs"],
+    "டீ": ["tea"],
+    "காபி": ["coffee"],
+    "சோப்": ["soap"],
+    "பிஸ்கட்": ["biscuit", "parle", "good day"],
+}
+
 class ProductService:
     @staticmethod
     def get_products(
@@ -41,10 +120,71 @@ class ProductService:
 
     @staticmethod
     def get_product_by_name(db: Session, business_id: UUID, name: str) -> Optional[Product]:
-        return db.query(Product).filter(
+        clean = name.strip()
+        # 1. Exact match
+        prod = db.query(Product).filter(
             Product.business_id == business_id,
-            Product.product_name.ilike(name.strip())
+            Product.product_name.ilike(clean)
         ).first()
+        if prod:
+            return prod
+
+        # 2. Substring match
+        prod = db.query(Product).filter(
+            Product.business_id == business_id,
+            Product.product_name.ilike(f"%{clean}%")
+        ).first()
+        if prod:
+            return prod
+
+        # 3. Multilingual synonym match
+        return ProductService.find_product_by_name_or_synonym(db, business_id, clean)
+
+    @staticmethod
+    def find_product_by_name_or_synonym(db: Session, business_id: UUID, name: str) -> Optional[Product]:
+        clean = name.strip()
+        lower_clean = clean.lower()
+
+        # 1. Exact match
+        prod = db.query(Product).filter(
+            Product.business_id == business_id,
+            Product.product_name.ilike(clean)
+        ).first()
+        if prod:
+            return prod
+
+        # 2. Substring match
+        prod = db.query(Product).filter(
+            Product.business_id == business_id,
+            Product.product_name.ilike(f"%{clean}%")
+        ).first()
+        if prod:
+            return prod
+
+        # 3. Direct dictionary synonym lookup
+        synonyms = PRODUCT_SYNONYMS.get(clean) or PRODUCT_SYNONYMS.get(lower_clean) or []
+        for candidate in synonyms:
+            prod = db.query(Product).filter(
+                Product.business_id == business_id,
+                Product.product_name.ilike(f"%{candidate}%")
+            ).first()
+            if prod:
+                return prod
+
+        # 4. Token-level synonym lookup for compound names (e.g. "ನಂದಿನಿ ಹಾಲು", "सोना मसूरी चावल")
+        tokens = clean.split()
+        for token in tokens:
+            t_clean = token.strip().lower()
+            if t_clean in PRODUCT_SYNONYMS:
+                for candidate in PRODUCT_SYNONYMS[t_clean]:
+                    prod = db.query(Product).filter(
+                        Product.business_id == business_id,
+                        Product.product_name.ilike(f"%{candidate}%")
+                    ).first()
+                    if prod:
+                        return prod
+
+        return None
 
     @staticmethod
     def create_product(db: Session, business_id: UUID, data: ProductCreate) -> Product:

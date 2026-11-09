@@ -4,6 +4,65 @@ from typing import Optional, Tuple
 from app.schemas.intent import IntentType, ParsedIntent, IntentItem
 
 class IntentService:
+    UNITS_REGEX = (
+        r"packets?|pkts?|pkt|"
+        r"kilograms?|kgs?|kg|"
+        r"grams?|gms?|g|"
+        r"litres?|liters?|ltrs?|ltr|l|"
+        r"pieces?|pcs?|"
+        r"boxes?|box|"
+        r"bottles?|bott|"
+        r"cans?|"
+        # Hindi
+        r"पैकेट|पैकट|पैक|किलोग्राम|किलो|ग्राम|लीटर|पीस|डिब्बा|बोतल|"
+        # Kannada
+        r"ಪ್ಯಾಕೆಟ್|ಕಿಲೋಗ್ರಾಂ|ಕಿಲೋ|ಕೆಜಿ|ಗ್ರಾಂ|ಲೀಟರ್|ಪೀಸ್|ಡಬ್ಬಿ|ಬಾಟಲಿ|"
+        # Malayalam
+        r"പാക്കറ്റ്|കിലോഗ്രാം|കിലോ|ഗ്രാം|ലിറ്റർ|പീസ്|കുപ്പി|"
+        # Tamil
+        r"பாக்கெட்|கிலோகிராம்|கிலோ|கிராம்|லிட்டர்|பீஸ்|பாட்டில்"
+    )
+
+    SALE_VERBS_PREFIX = (
+        r"sell|sold|sale|"
+        r"बेचो|बेंचो|बेच|बिका|बिक्री|बेचना|बेची|"
+        r"ಮಾರಿರಿ|ಮಾರಿ|ಮಾರಾಟ\s+ಮಾಡಿ|ಮಾರಾಟ|ಮಾರಿದೆ|"
+        r"വിൽക്കുക|വിറ്റു|വിൽക്കുകയാണ്|വിൽപ്പന|"
+        r"விற்கவும்|விற்க|விற்று|விற்பனை"
+    )
+
+    SALE_VERBS_POSTFIX = (
+        r"sell|sold|sale|sell\s+karo|sale\s+madi|sale\s+panunga|"
+        r"बेचो|बेंचो|बेच|बिका|बिक्री|बेचना|बेची|बेच\s+दिया|बेच\s+दो|"
+        r"ಮಾರಿರಿ|ಮಾರಿ|ಮಾರಾಟ\s+ಮಾಡಿ|ಮಾರಾಟ|ಮಾರಿದೆ|ಮಾರಿಬಿಡಿ|"
+        r"വിൽക്കുക|വിറ്റു|വിൽക്കുകയാണ്|വിൽപ്പന|വിൽക്ക്|"
+        r"விற்கவும்|விற்க|விற்று|விற்பனை"
+    )
+
+    PRICE_PATTERN = (
+        r"(?:"
+        r"(?:for|at)\s*(?:₹|rs\.?|rupees)?\s*(\d+(?:\.\d+)?)|"
+        r"(?:₹|rs\.?)\s*(\d+(?:\.\d+)?)|"
+        r"(\d+(?:\.\d+)?)\s*(?:रुपये\s*में|रुपए\s*में|रुपये|रुपए|रु|ರೂಪಾಯಿಗೆ|ರೂಗೆ|ರೂಪಾಯಿ|ರೂ|ಕ್ಕೆ|ಗೆ|രൂപയ്ക്ക്|രൂപക്ക്|രൂപ|ന്|ക്ക്|ரூபாய்க்கு|ரூபாய்|ரூ|rs\.?|rupees?)"
+        r")"
+    )
+
+    STOCK_VERBS_PREFIX = (
+        r"add|restock|stock|"
+        r"जोड़ो|डालो|"
+        r"ಸೇರಿಸಿ|ಹಾಕಿ|"
+        r"ചേർക്കുക|ഇടുക|"
+        r"சேர்க்கவும்|சேர்"
+    )
+
+    STOCK_VERBS_POSTFIX = (
+        r"add|restock|stock|add\s+karo|add\s+madi|add\s+panunga|"
+        r"जोड़ो|डालो|स्टॉक\s+जोड़ो|ऐड\s+करो|"
+        r"ಸೇರಿಸಿ|ಹಾಕಿ|ಸ್ಟಾಕ್\s+ಸೇರಿಸಿ|ಆಡ್\s+ಮಾಡಿ|"
+        r"ചേർക്കുക|ഇടുക|സ്റ്റോക്ക്\s+ചേർക്കുക|"
+        r"சேர்க்கவும்|சேர்|ஸ்டாக்\s+சேர்க்கவும்"
+    )
+
     @staticmethod
     def detect_language(text: str) -> str:
         """Detect language from Unicode block ranges."""
@@ -185,61 +244,117 @@ class IntentService:
                 requires_confirmation=False
             )
 
-        # 11. UPDATE_STOCK
-        # e.g. "Add 10 packets of milk", "Add 5 milk packets", "10 पैकेट दूध जोड़ो", "10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ", "10 പാക്കറ്റ് പാൽ ചേർക്കുക"
-        stock_match = re.search(
-            r'(?:add|restock|जोड़ो|सೇರಿಸಿ|ചേർക്കുക)\s*(\d+(?:\.\d+)?)\s*(packets?|kg|g|l|litres?|pcs|पैक|ಪ್ಯಾಕೆಟ್|പാക്കറ്റ്)?\s*(?:of\s+)?([A-Za-z\u0900-\u0D7F\s]+)',
-            cleaned, re.IGNORECASE
-        )
-        if not stock_match:
-            # Reverse order in Indic grammar: "10 पैकेट दूध जोड़ो" / "10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ"
-            stock_match = re.search(
-                r'(\d+(?:\.\d+)?)\s*(packets?|kg|g|l|litres?|pcs|पैक|पैकट|ಪ್ಯಾಕೆಟ್|പാക്കറ്റ്)?\s*([A-Za-z\u0900-\u0D7F\s]+?)\s*(?:add|restock|जोड़ो|सೇರಿಸಿ|ಚೇರ್ക്കുക|add karo)',
-                cleaned, re.IGNORECASE
-            )
+        # 11. CREATE_SALE
+        # Supports English, Hindi, Kannada, Malayalam, and Tamil sale commands.
+        # e.g. "Sell 2 kg rice for 120", "Sold 3 eggs for 18", "2 पैकेट दूध बेचो", "2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ", "2 പാക്കറ്റ് പാൽ വിൽക്കുക"
+        if not any(w in lower for w in ["expense", "खर्च", "ಖರ್ಚು", "ചെലവ്", "செலவு"]):
+            # Pattern 1: Verb at beginning: e.g. "Sell 2 kg rice for 120", "Sold 3 eggs for 18"
+            p_sale1 = rf'^(?:{IntentService.SALE_VERBS_PREFIX})\s+(\d+(?:\.\d+)?)\s*(?:({IntentService.UNITS_REGEX})\s+)?(?:of\s+)?(.+?)(?:\s+{IntentService.PRICE_PATTERN})?$'
+            m_sale1 = re.search(p_sale1, cleaned, re.IGNORECASE)
+            if m_sale1:
+                qty = Decimal(m_sale1.group(1))
+                unit = m_sale1.group(2) or "pcs"
+                prod = m_sale1.group(3).strip()
+                price_str = m_sale1.group(4) or m_sale1.group(5) or m_sale1.group(6)
+                price = Decimal(price_str) if price_str else None
+                prod = re.sub(r'^(?:of)\s+', '', prod, flags=re.IGNORECASE).strip()
+                prod = re.sub(r'\b(?:to|in|of|karo|madi|panunga)\b', '', prod, flags=re.IGNORECASE).strip()
+                if prod:
+                    return ParsedIntent(
+                        intent=IntentType.CREATE_SALE,
+                        product_name=prod,
+                        quantity=qty,
+                        unit=unit,
+                        price=price,
+                        language=effective_lang,
+                        requires_confirmation=True
+                    )
 
-        if stock_match and not any(w in lower for w in ["expense", "खर्च", "ಖರ್ಚು"]):
-            qty = Decimal(stock_match.group(1))
-            unit = stock_match.group(2) or "pcs"
-            prod_name = stock_match.group(3).strip()
-            # Clean trailing prepositions
-            prod_name = re.sub(r'\b(to|in|of|karo|madi)\b', '', prod_name, flags=re.IGNORECASE).strip()
-            return ParsedIntent(
-                intent=IntentType.UPDATE_STOCK,
-                product_name=prod_name,
-                quantity=qty,
-                unit=unit,
-                language=effective_lang,
-                requires_confirmation=True
-            )
+            # Pattern 2: Postfix verb (Indic / SOV order): e.g. "2 पैकेट दूध बेचो", "2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ", "2 പാക്കറ്റ് പാൽ വിൽക്കുക"
+            p_sale2 = rf'^\s*(\d+(?:\.\d+)?)\s*(?:({IntentService.UNITS_REGEX})\s+)?(?:of\s+)?(.+?)(?:\s+{IntentService.PRICE_PATTERN})?\s+(?:{IntentService.SALE_VERBS_POSTFIX})\s*$'
+            m_sale2 = re.search(p_sale2, cleaned, re.IGNORECASE)
+            if m_sale2:
+                qty = Decimal(m_sale2.group(1))
+                unit = m_sale2.group(2) or "pcs"
+                prod = m_sale2.group(3).strip()
+                price_str = m_sale2.group(4) or m_sale2.group(5) or m_sale2.group(6)
+                price = Decimal(price_str) if price_str else None
+                prod = re.sub(r'^(?:of)\s+', '', prod, flags=re.IGNORECASE).strip()
+                prod = re.sub(r'\b(?:to|in|of|karo|madi|panunga)\b', '', prod, flags=re.IGNORECASE).strip()
+                if prod:
+                    return ParsedIntent(
+                        intent=IntentType.CREATE_SALE,
+                        product_name=prod,
+                        quantity=qty,
+                        unit=unit,
+                        price=price,
+                        language=effective_lang,
+                        requires_confirmation=True
+                    )
 
-        # 12. CREATE_SALE
-        # e.g. "Sell 2 kg rice for 120", "Sell 2 milk packets", "Sold 3 eggs for 18"
-        sale_match = re.search(
-            r'(?:sell|sold|बेंचो|बिका|ಮಾರಿ|ಮಾರಾಟ ಮಾಡಿ|വിൽക്കുക)\s*(\d+(?:\.\d+)?)\s*(packets?|kg|g|l|pcs)?\s*(?:of\s+)?([A-Za-z\u0900-\u0D7F\s]+?)(?:\s+(?:for|at|रुपये में|ರೂಪಾಯಿಗೆ|രൂപയ്ക്ക്)\s*(?:₹|rs\.?|rupees)?\s*(\d+(?:\.\d+)?))?$',
-            cleaned, re.IGNORECASE
-        )
-        if not sale_match:
-            # Indic order: "2 ಕೆಜಿ ಅಕ್ಕಿ 120 ರೂಪಾಯಿಗೆ ಮಾರಿ"
-            sale_match = re.search(
-                r'(\d+(?:\.\d+)?)\s*(packets?|kg|g|l|pcs)?\s*([A-Za-z\u0900-\u0D7F\s]+?)(?:\s*(?:₹|rs\.?|rupees|रुपये|ರೂಪಾಯಿ|രൂപ)?\s*(\d+(?:\.\d+)?))?\s*(?:sell|sold|बेंचो|ಮಾರಿ|വിൽക്കുക|sale madi|sell karo)',
-                cleaned, re.IGNORECASE
-            )
+            # Pattern 3: Inverted order: e.g. "Sell milk 2 packets for 50"
+            p_sale3 = rf'^(?:{IntentService.SALE_VERBS_PREFIX})\s+(.+?)\s+(\d+(?:\.\d+)?)\s*({IntentService.UNITS_REGEX})?(?:\s+{IntentService.PRICE_PATTERN})?$'
+            m_sale3 = re.search(p_sale3, cleaned, re.IGNORECASE)
+            if m_sale3:
+                prod = m_sale3.group(1).strip()
+                qty = Decimal(m_sale3.group(2))
+                unit = m_sale3.group(3) or "pcs"
+                price_str = m_sale3.group(4) or m_sale3.group(5) or m_sale3.group(6)
+                price = Decimal(price_str) if price_str else None
+                prod = re.sub(r'^(?:of)\s+', '', prod, flags=re.IGNORECASE).strip()
+                prod = re.sub(r'\b(?:to|in|of|karo|madi|panunga)\b', '', prod, flags=re.IGNORECASE).strip()
+                if prod:
+                    return ParsedIntent(
+                        intent=IntentType.CREATE_SALE,
+                        product_name=prod,
+                        quantity=qty,
+                        unit=unit,
+                        price=price,
+                        language=effective_lang,
+                        requires_confirmation=True
+                    )
 
-        if sale_match:
-            qty = Decimal(sale_match.group(1))
-            unit = sale_match.group(2) or "pcs"
-            prod_name = sale_match.group(3).strip()
-            price_val = Decimal(sale_match.group(4)) if sale_match.group(4) else None
-            return ParsedIntent(
-                intent=IntentType.CREATE_SALE,
-                product_name=prod_name,
-                quantity=qty,
-                unit=unit,
-                price=price_val,
-                language=effective_lang,
-                requires_confirmation=True
-            )
+        # 12. UPDATE_STOCK
+        # Supports English, Hindi, Kannada, Malayalam, and Tamil stock commands.
+        # e.g. "Add 10 packets of milk", "10 पैकेट दूध जोड़ो", "10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ", "10 പാക്കറ്റ് പാൽ ചേർക്കുക"
+        if not any(w in lower for w in ["expense", "खर्च", "ಖರ್ಚು", "ചെലവ്", "செலவு"]):
+            # Check prefix stock verb: e.g. "Add 10 packets of milk"
+            p_stock1 = rf'^(?:{IntentService.STOCK_VERBS_PREFIX})\s+(\d+(?:\.\d+)?)\s*(?:({IntentService.UNITS_REGEX})\s+)?(?:of\s+)?(.+?)$'
+            m_stock1 = re.search(p_stock1, cleaned, re.IGNORECASE)
+            if m_stock1:
+                qty = Decimal(m_stock1.group(1))
+                unit = m_stock1.group(2) or "pcs"
+                prod = m_stock1.group(3).strip()
+                prod = re.sub(r'^(?:of)\s+', '', prod, flags=re.IGNORECASE).strip()
+                prod = re.sub(r'\b(?:to|in|of|karo|madi|panunga)\b', '', prod, flags=re.IGNORECASE).strip()
+                if prod:
+                    return ParsedIntent(
+                        intent=IntentType.UPDATE_STOCK,
+                        product_name=prod,
+                        quantity=qty,
+                        unit=unit,
+                        language=effective_lang,
+                        requires_confirmation=True
+                    )
+
+            # Check postfix stock verb: e.g. "10 पैकेट दूध जोड़ो", "10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ", "10 പാക്കറ്റ് പാൽ ചേർക്കുക", "10 packet milk add karo"
+            p_stock2 = rf'^\s*(\d+(?:\.\d+)?)\s*(?:({IntentService.UNITS_REGEX})\s+)?(?:of\s+)?(.+?)\s+(?:{IntentService.STOCK_VERBS_POSTFIX})\s*$'
+            m_stock2 = re.search(p_stock2, cleaned, re.IGNORECASE)
+            if m_stock2:
+                qty = Decimal(m_stock2.group(1))
+                unit = m_stock2.group(2) or "pcs"
+                prod = m_stock2.group(3).strip()
+                prod = re.sub(r'^(?:of)\s+', '', prod, flags=re.IGNORECASE).strip()
+                prod = re.sub(r'\b(?:to|in|of|karo|madi|panunga)\b', '', prod, flags=re.IGNORECASE).strip()
+                if prod:
+                    return ParsedIntent(
+                        intent=IntentType.UPDATE_STOCK,
+                        product_name=prod,
+                        quantity=qty,
+                        unit=unit,
+                        language=effective_lang,
+                        requires_confirmation=True
+                    )
 
         # 13. ADD_EXPENSE
         # e.g. "Add expense 500 for electricity", "500 electricity expense", "500 रुपये बिजली का खर्च जोड़ो"

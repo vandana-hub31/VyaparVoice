@@ -69,7 +69,15 @@ class VoiceOrchestrator:
         lang: Optional[str] = "auto",
         idempotency_key: Optional[str] = None
     ) -> VoiceCommandResponse:
-        parsed = IntentService.parse_text(transcription, user_lang=user.preferred_language)
+        # Normalize request language hint if passed from frontend or STT
+        req_lang = None
+        if lang and lang.lower() not in ["auto", "indic-auto"]:
+            clean_l = lang.lower().split("-")[0].strip()
+            if clean_l in ["kn", "ml", "hi", "ta", "en"]:
+                req_lang = clean_l
+
+        user_hint = req_lang or user.preferred_language or "en"
+        parsed = IntentService.parse_text(transcription, user_lang=user_hint)
         effective_lang = parsed.language
 
         # READ-ONLY ACTIONS
@@ -204,6 +212,84 @@ class VoiceOrchestrator:
                 audio_base64=audio_b64
             )
 
+        elif parsed.intent == IntentType.GET_TOP_PRODUCTS:
+            top_prods = DashboardService.get_top_products(db, business.id, limit=3)
+            if not top_prods:
+                if effective_lang == "kn":
+                    resp_text = "ಇನ್ನೂ ಯಾವುದೇ ಮಾರಾಟ ದಾಖಲಾಗಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = "വിൽപ്പന വിവരങ്ങൾ ലഭ്യമല്ല."
+                elif effective_lang == "hi":
+                    resp_text = "अभी तक कोई बिक्री रिकॉर्ड नहीं हुई है।"
+                elif effective_lang == "ta":
+                    resp_text = "விற்பனை விவரங்கள் எதுவும் பதிவாகவில்லை."
+                else:
+                    resp_text = "No sales recorded yet."
+            else:
+                names = ", ".join([f"{p.product_name} ({p.quantity_sold} sold, ₹{p.revenue:,.2f})" for p in top_prods])
+                if effective_lang == "kn":
+                    resp_text = f"ಹೆಚ್ಚು ಮಾರಾಟವಾದ ಸರಕುಗಳು: {names}."
+                elif effective_lang == "ml":
+                    resp_text = f"ഏറ്റവും കൂടുതൽ വിറ്റഴിഞ്ഞ ഉൽപ്പന്നങ്ങൾ: {names}."
+                elif effective_lang == "hi":
+                    resp_text = f"सबसे अधिक बिकने वाले उत्पाद: {names}."
+                elif effective_lang == "ta":
+                    resp_text = f"அதிகமாக விற்பனையான பொருட்கள்: {names}."
+                else:
+                    resp_text = f"Your top selling products are: {names}."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"top_products": [p.product_name for p in top_prods]}
+            )
+
+        elif parsed.intent == IntentType.GET_INVENTORY:
+            prods = ProductService.get_products(db, business.id, limit=6)
+            if not prods:
+                if effective_lang == "kn":
+                    resp_text = "ನಿಮ್ಮಲ್ಲಿ ಯಾವುದೇ ಉತ್ಪನ್ನಗಳು ನೋಂದಣಿಯಾಗಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = "ഉൽപ്പന്നങ്ങൾ ഒന്നും രേഖപ്പെടുത്തിയിട്ടില്ല."
+                elif effective_lang == "hi":
+                    resp_text = "आपकी सूची में कोई उत्पाद नहीं है।"
+                elif effective_lang == "ta":
+                    resp_text = "சரக்கு பட்டியலில் எந்த பொருட்களும் இல்லை."
+                else:
+                    resp_text = "No products found in your inventory."
+            else:
+                names = ", ".join([f"{p.product_name} ({p.current_stock} {p.unit})" for p in prods])
+                if effective_lang == "kn":
+                    resp_text = f"ದಾಸ್ತಾನು ವಿವರ: {names}."
+                elif effective_lang == "ml":
+                    resp_text = f"സ്റ്റോക്ക് വിവരം: {names}."
+                elif effective_lang == "hi":
+                    resp_text = f"स्टॉक का विवरण: {names}."
+                elif effective_lang == "ta":
+                    resp_text = f"சரக்கு இருப்பு விவரம்: {names}."
+                else:
+                    resp_text = f"Current inventory levels: {names}."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"inventory_count": len(prods)}
+            )
+
         elif parsed.intent == IntentType.GET_CUSTOMER_BALANCE:
             if not parsed.customer_name:
                 resp_text = "Which customer's balance would you like to check?"
@@ -216,7 +302,16 @@ class VoiceOrchestrator:
                 )
             cust = CustomerService.get_customer_by_name(db, business.id, parsed.customer_name)
             if not cust:
-                resp_text = f"I could not find a customer named '{parsed.customer_name}'."
+                if effective_lang == "kn":
+                    resp_text = f"ಗ್ರಾಹಕ '{parsed.customer_name}' ನಿಮ್ಮ ಲೆಡ್ಜರ್‌ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = f"ഉപഭോക്താവ് '{parsed.customer_name}' നിങ്ങളുടെ ലെഡ്ജറിൽ കണ്ടെത്തിയില്ല."
+                elif effective_lang == "hi":
+                    resp_text = f"ग्राहक '{parsed.customer_name}' आपके खाते में नहीं मिले।"
+                elif effective_lang == "ta":
+                    resp_text = f"வாடிக்கையாளர் '{parsed.customer_name}' உங்கள் பதிவேட்டில் காணப்படவில்லை."
+                else:
+                    resp_text = f"I could not find a customer named '{parsed.customer_name}'."
             else:
                 if effective_lang == "kn":
                     resp_text = f"{cust.customer_name} ಅವರ ಬಾಕಿ ಹಣ ₹{cust.outstanding_balance:,.2f} ಆಗಿದೆ."
@@ -241,6 +336,84 @@ class VoiceOrchestrator:
                 audio_base64=audio_b64
             )
 
+        elif parsed.intent == IntentType.GET_TOP_PRODUCTS:
+            top_prods = DashboardService.get_top_products(db, business.id, limit=3)
+            if not top_prods:
+                if effective_lang == "kn":
+                    resp_text = "ಇನ್ನೂ ಯಾವುದೇ ಮಾರಾಟ ದಾಖಲಾಗಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = "വിൽപ്പന വിവരങ്ങൾ ലഭ്യമല്ല."
+                elif effective_lang == "hi":
+                    resp_text = "अभी तक कोई बिक्री रिकॉर्ड नहीं हुई है।"
+                elif effective_lang == "ta":
+                    resp_text = "விற்பனை விவரங்கள் எதுவும் பதிவாகவில்லை."
+                else:
+                    resp_text = "No sales recorded yet."
+            else:
+                names = ", ".join([f"{p.product_name} ({p.quantity_sold} sold, ₹{p.revenue:,.2f})" for p in top_prods])
+                if effective_lang == "kn":
+                    resp_text = f"ಹೆಚ್ಚು ಮಾರಾಟವಾದ ಸರಕುಗಳು: {names}."
+                elif effective_lang == "ml":
+                    resp_text = f"ഏറ്റവും കൂടുതൽ വിറ്റഴിഞ്ഞ ഉൽപ്പന്നങ്ങൾ: {names}."
+                elif effective_lang == "hi":
+                    resp_text = f"सबसे अधिक बिकने वाले उत्पाद: {names}."
+                elif effective_lang == "ta":
+                    resp_text = f"அதிகமாக விற்பனையான பொருட்கள்: {names}."
+                else:
+                    resp_text = f"Your top selling products are: {names}."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"top_products": [p.product_name for p in top_prods]}
+            )
+
+        elif parsed.intent == IntentType.GET_INVENTORY:
+            prods = ProductService.get_products(db, business.id, limit=6)
+            if not prods:
+                if effective_lang == "kn":
+                    resp_text = "ನಿಮ್ಮಲ್ಲಿ ಯಾವುದೇ ಉತ್ಪನ್ನಗಳು ನೋಂದಣಿಯಾಗಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = "ഉൽപ്പന്നങ്ങൾ ഒന്നും രേഖപ്പെടുത്തിയിട്ടില്ല."
+                elif effective_lang == "hi":
+                    resp_text = "आपकी सूची में कोई उत्पाद नहीं है।"
+                elif effective_lang == "ta":
+                    resp_text = "சரக்கு பட்டியலில் எந்த பொருட்களும் இல்லை."
+                else:
+                    resp_text = "No products found in your inventory."
+            else:
+                names = ", ".join([f"{p.product_name} ({p.current_stock} {p.unit})" for p in prods])
+                if effective_lang == "kn":
+                    resp_text = f"ದಾಸ್ತಾನು ವಿವರ: {names}."
+                elif effective_lang == "ml":
+                    resp_text = f"സ്റ്റോക്ക് വിവരം: {names}."
+                elif effective_lang == "hi":
+                    resp_text = f"स्टॉक का विवरण: {names}."
+                elif effective_lang == "ta":
+                    resp_text = f"சரக்கு இருப்பு விவரம்: {names}."
+                else:
+                    resp_text = f"Current inventory levels: {names}."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"inventory_count": len(prods)}
+            )
+
         # WRITE ACTIONS — REQUIRE CONFIRMATION
         if parsed.intent == IntentType.UPDATE_STOCK:
             if not parsed.product_name or not parsed.quantity:
@@ -253,14 +426,20 @@ class VoiceOrchestrator:
                     response_text=resp_text
                 )
             
-            prod = ProductService.get_product_by_name(db, business.id, parsed.product_name)
-            if not prod:
-                # Try finding closest or fuzzy match
-                all_prods = ProductService.get_products(db, business.id, search=parsed.product_name)
-                prod = all_prods[0] if all_prods else None
+            prod = ProductService.find_product_by_name_or_synonym(db, business.id, parsed.product_name)
 
             if not prod:
-                resp_text = f"I could not find the product '{parsed.product_name}'. Would you like to create it first?"
+                if effective_lang == "kn":
+                    resp_text = f"ನನಗೆ '{parsed.product_name}' ಉತ್ಪನ್ನ ಸಿಗಲಿಲ್ಲ. ನೀವು ಮೊದಲು ಅದನ್ನು ಸೇರಿಸಲು ಬಯಸುತ್ತೀರಾ?"
+                elif effective_lang == "ml":
+                    resp_text = f"'{parsed.product_name}' എന്ന ഉൽപ്പന്നം കണ്ടെത്താൻ കഴിഞ്ഞില്ല. ഇത് ആദ്യം ചേർക്കാൻ താൽപ്പര്യമുണ്ടോ?"
+                elif effective_lang == "hi":
+                    resp_text = f"मुझे '{parsed.product_name}' उत्पाद नहीं मिला। क्या आप इसे पहले जोड़ना चाहते हैं?"
+                elif effective_lang == "ta":
+                    resp_text = f"'{parsed.product_name}' என்ற பொருள் கிடைக்கவில்லை. இதை முதலில் சேர்க்க விரும்புகிறீர்களா?"
+                else:
+                    resp_text = f"I could not find the product '{parsed.product_name}'. Would you like to create it first?"
+
                 return VoiceCommandResponse(
                     transcription=transcription,
                     detected_language=effective_lang,
@@ -320,13 +499,20 @@ class VoiceOrchestrator:
                     response_text=resp_text
                 )
 
-            prod = ProductService.get_product_by_name(db, business.id, parsed.product_name)
-            if not prod:
-                all_prods = ProductService.get_products(db, business.id, search=parsed.product_name)
-                prod = all_prods[0] if all_prods else None
+            prod = ProductService.find_product_by_name_or_synonym(db, business.id, parsed.product_name)
 
             if not prod:
-                resp_text = f"Product '{parsed.product_name}' was not found in your inventory."
+                if effective_lang == "kn":
+                    resp_text = f"ಉತ್ಪನ್ನ '{parsed.product_name}' ನಿಮ್ಮ ದಾಸ್ತಾನಿನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = f"'{parsed.product_name}' എന്ന ഉൽപ്പന്നം നിങ്ങളുടെ സ്റ്റോക്കിൽ കണ്ടെത്തിയില്ല."
+                elif effective_lang == "hi":
+                    resp_text = f"उत्पाद '{parsed.product_name}' आपकी इन्वेंटरी में नहीं मिला।"
+                elif effective_lang == "ta":
+                    resp_text = f"'{parsed.product_name}' என்ற பொருள் உங்கள் சரக்கு இருப்பில் காணப்படவில்லை."
+                else:
+                    resp_text = f"Product '{parsed.product_name}' was not found in your inventory."
+
                 return VoiceCommandResponse(
                     transcription=transcription,
                     detected_language=effective_lang,
@@ -391,7 +577,16 @@ class VoiceOrchestrator:
 
             cust = CustomerService.get_customer_by_name(db, business.id, parsed.customer_name)
             if not cust:
-                resp_text = f"Customer '{parsed.customer_name}' was not found in your ledger."
+                if effective_lang == "kn":
+                    resp_text = f"ಗ್ರಾಹಕ '{parsed.customer_name}' ನಿಮ್ಮ ಲೆಡ್ಜರ್‌ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ."
+                elif effective_lang == "ml":
+                    resp_text = f"ഉപഭോക്താവ് '{parsed.customer_name}' നിങ്ങളുടെ ലെഡ്ജറിൽ കണ്ടെത്തിയില്ല."
+                elif effective_lang == "hi":
+                    resp_text = f"ग्राहक '{parsed.customer_name}' आपके खाते में नहीं मिले।"
+                elif effective_lang == "ta":
+                    resp_text = f"வாடிக்கையாளர் '{parsed.customer_name}' உங்கள் பதிவேட்டில் காணப்படவில்லை."
+                else:
+                    resp_text = f"Customer '{parsed.customer_name}' was not found in your ledger."
                 return VoiceCommandResponse(
                     transcription=transcription,
                     detected_language=effective_lang,
@@ -489,8 +684,136 @@ class VoiceOrchestrator:
                 pending_action=details
             )
 
+        elif parsed.intent == IntentType.CREATE_CREDIT:
+            if not parsed.customer_name or not parsed.amount:
+                resp_text = "Please specify customer name and credit amount."
+                return VoiceCommandResponse(
+                    transcription=transcription,
+                    detected_language=effective_lang,
+                    parsed_intent=parsed,
+                    execution_status="CLARIFICATION_NEEDED",
+                    response_text=resp_text
+                )
+
+            cust = CustomerService.get_customer_by_name(db, business.id, parsed.customer_name)
+            if not cust:
+                if effective_lang == "kn":
+                    resp_text = f"ಗ್ರಾಹಕ '{parsed.customer_name}' ನಿಮ್ಮ ಲೆಡ್ಜರ್‌ನಲ್ಲಿ ಕಂಡುಬಂದಿಲ್ಲ. ನೀವು ಮೊದಲು ಅವರನ್ನು ಸೇರಿಸಲು ಬಯಸುತ್ತೀರಾ?"
+                elif effective_lang == "ml":
+                    resp_text = f"ഉപഭോക്താവ് '{parsed.customer_name}' നിങ്ങളുടെ ലെഡ്ജറിൽ കണ്ടെത്തിയില്ല. അവരെ ആദ്യം ചേർക്കണോ?"
+                elif effective_lang == "hi":
+                    resp_text = f"ग्राहक '{parsed.customer_name}' आपके खाते में नहीं मिले। क्या आप पहले उन्हें जोड़ना चाहते हैं?"
+                elif effective_lang == "ta":
+                    resp_text = f"வாடிக்கையாளர் '{parsed.customer_name}' உங்கள் பதிவேட்டில் காணப்படவில்லை. முதலில் சேர்க்கவா?"
+                else:
+                    resp_text = f"Customer '{parsed.customer_name}' was not found in your ledger. Would you like to add them first?"
+                return VoiceCommandResponse(
+                    transcription=transcription,
+                    detected_language=effective_lang,
+                    parsed_intent=parsed,
+                    execution_status="FAILED",
+                    response_text=resp_text
+                )
+
+            summary = f"Give ₹{parsed.amount:,.2f} credit to {cust.customer_name}"
+            if effective_lang == "kn":
+                confirm_prompt = f"{cust.customer_name} ಅವರಿಗೆ ₹{parsed.amount:,.2f} ಸಾಲ ನೀಡಬೇಕೇ? ಖಚಿತಪಡಿಸಿ."
+            elif effective_lang == "ml":
+                confirm_prompt = f"{cust.customer_name} ന് ₹{parsed.amount:,.2f} കടം നൽകണോ? സ്ഥിരീകരിക്കുക."
+            elif effective_lang == "hi":
+                confirm_prompt = f"क्या {cust.customer_name} को ₹{parsed.amount:,.2f} का उधार दें? कृपया पुष्टि करें।"
+            elif effective_lang == "ta":
+                confirm_prompt = f"{cust.customer_name} அவர்களுக்கு ₹{parsed.amount:,.2f} கடன் கொடுக்கவா? உறுதிப்படுத்தவும்."
+            else:
+                confirm_prompt = f"Give ₹{parsed.amount:,.2f} credit to {cust.customer_name}. Should I confirm?"
+
+            token, details = VoiceOrchestrator._create_confirmation(
+                business_id=business.id,
+                user_id=user.id,
+                action_type="CREATE_CREDIT",
+                summary=summary,
+                params={
+                    "customer_id": str(cust.id),
+                    "customer_name": cust.customer_name,
+                    "amount": float(parsed.amount)
+                },
+                lang=effective_lang
+            )
+
+            audio_b64 = await GnaniService.synthesize_speech(confirm_prompt, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "PENDING_CONFIRMATION", confirm_prompt)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="PENDING_CONFIRMATION",
+                response_text=confirm_prompt,
+                audio_base64=audio_b64,
+                confirmation_token=token,
+                pending_action=details
+            )
+
+        elif parsed.intent == IntentType.ADD_CUSTOMER:
+            if not parsed.customer_name:
+                resp_text = "Please specify the customer name to add."
+                return VoiceCommandResponse(
+                    transcription=transcription,
+                    detected_language=effective_lang,
+                    parsed_intent=parsed,
+                    execution_status="CLARIFICATION_NEEDED",
+                    response_text=resp_text
+                )
+
+            summary = f"Add new customer {parsed.customer_name}" + (f" ({parsed.customer_phone})" if parsed.customer_phone else "")
+            if effective_lang == "kn":
+                confirm_prompt = f"ಹೊಸ ಗ್ರಾಹಕ {parsed.customer_name} ಅವರನ್ನು ಸೇರಿಸಬೇಕೇ? ಖಚಿತಪಡಿಸಿ."
+            elif effective_lang == "ml":
+                confirm_prompt = f"പുതിയ ഉപഭോക്താവ് {parsed.customer_name} എന്നയാളെ ചേർക്കണോ?"
+            elif effective_lang == "hi":
+                confirm_prompt = f"क्या नए ग्राहक {parsed.customer_name} को जोड़ें? कृपया पुष्टि करें।"
+            elif effective_lang == "ta":
+                confirm_prompt = f"புதிய வாடிக்கையாளர் {parsed.customer_name} அவர்களை சேர்க்கவா? உறுதிப்படுத்தவும்."
+            else:
+                confirm_prompt = f"Add new customer {parsed.customer_name}. Should I confirm?"
+
+            token, details = VoiceOrchestrator._create_confirmation(
+                business_id=business.id,
+                user_id=user.id,
+                action_type="ADD_CUSTOMER",
+                summary=summary,
+                params={
+                    "customer_name": parsed.customer_name,
+                    "phone": parsed.customer_phone
+                },
+                lang=effective_lang
+            )
+
+            audio_b64 = await GnaniService.synthesize_speech(confirm_prompt, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "PENDING_CONFIRMATION", confirm_prompt)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="PENDING_CONFIRMATION",
+                response_text=confirm_prompt,
+                audio_base64=audio_b64,
+                confirmation_token=token,
+                pending_action=details
+            )
+
         # UNKNOWN OR FALLBACK
-        resp_text = parsed.clarification_question or "I could not process that request. Please try again."
+        if effective_lang == "kn":
+            resp_text = parsed.clarification_question or "ಕ್ಷಮಿಸಿ, ಆ ವಿನಂತಿಯನ್ನು ಪ್ರಕ್ರಿಯೆಗೊಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೊಮ್ಮೆ ಪ್ರಯತ್ನಿಸಿ."
+        elif effective_lang == "ml":
+            resp_text = parsed.clarification_question or "ക്ഷമിക്കണം, ആ അഭ്യർത്ഥന പ്രോസസ്സ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി വീണ്ടും ശ്രമിക്കുക."
+        elif effective_lang == "hi":
+            resp_text = parsed.clarification_question or "क्षमा करें, मैं उस अनुरोध को संसाधित नहीं कर सका। कृपया पुनः प्रयास करें।"
+        elif effective_lang == "ta":
+            resp_text = parsed.clarification_question or "மன்னிக்கவும், அந்த கோரிக்கையை செயல்படுத்த முடியவில்லை. மீண்டும் முயற்சிக்கவும்."
+        else:
+            resp_text = parsed.clarification_question or "I could not process that request. Please try again."
         audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
         VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "FAILED", resp_text)
 
@@ -507,14 +830,21 @@ class VoiceOrchestrator:
     async def confirm_action(
         db: Session,
         token: str,
-        confirmed: bool
+        confirmed: bool,
+        current_user_id: Optional[uuid.UUID] = None
     ) -> VoiceCommandResponse:
         if token not in _pending_actions:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Confirmation token not found or expired")
 
-        action_data = _pending_actions.pop(token)
+        action_data = _pending_actions[token]
         if datetime.now(timezone.utc) > action_data["expires_at"]:
+            _pending_actions.pop(token, None)
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Confirmation token has expired")
+
+        if current_user_id and action_data["user_id"] != current_user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to confirm this action")
+
+        _pending_actions.pop(token, None)
 
         lang = action_data["lang"]
         action_type = action_data["action_type"]
@@ -685,6 +1015,71 @@ class VoiceOrchestrator:
                 response_text=resp_text,
                 audio_base64=audio_b64,
                 data={"expense_id": str(exp.id), "amount": float(exp.amount)}
+            )
+
+        elif action_type == "CREATE_CREDIT":
+            c_id = uuid.UUID(params["customer_id"])
+            amt = Decimal(str(params["amount"]))
+            tx = CustomerService.record_credit(
+                db, b_id, c_id, amt,
+                description="Voice confirmed credit entry"
+            )
+            cust = CustomerService.get_customer_by_id(db, b_id, c_id)
+
+            if lang == "kn":
+                resp_text = f"ಸಾಲ ದಾಖಲಾಗಿದೆ. {cust.customer_name} ಅವರ ಒಟ್ಟು ಬಾಕಿ ಈಗ ₹{cust.outstanding_balance:,.2f}."
+            elif lang == "ml":
+                resp_text = f"കടം രേഖപ്പെടുത്തി. {cust.customer_name} ഇനി നൽകാനുള്ള തുക ₹{cust.outstanding_balance:,.2f}."
+            elif lang == "hi":
+                resp_text = f"उधार दर्ज कर लिया गया है। {cust.customer_name} का कुल बकाया अब ₹{cust.outstanding_balance:,.2f} है।"
+            elif lang == "ta":
+                resp_text = f"கடன் பதிவானது. {cust.customer_name} அவர்களின் மொத்த நிலுவை கடன் இப்போது ₹{cust.outstanding_balance:,.2f}."
+            else:
+                resp_text = f"Credit recorded! {cust.customer_name}'s total balance is now ₹{cust.outstanding_balance:,.2f}."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=lang)
+            VoiceOrchestrator._log_interaction(db, b_id, u_id, lang, f"CONFIRM {action_type}", "CREATE_CREDIT", "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=f"Confirmed {action_data['summary']}",
+                detected_language=lang,
+                parsed_intent=ParsedIntent(intent=IntentType.CREATE_CREDIT, language=lang),
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"customer_id": str(cust.id), "new_balance": float(cust.outstanding_balance)}
+            )
+
+        elif action_type == "ADD_CUSTOMER":
+            c_name = params["customer_name"]
+            phone = params.get("phone")
+            new_cust = CustomerService.create_customer(
+                db, b_id,
+                CustomerCreate(customer_name=c_name, phone=phone, initial_balance=Decimal("0.00"))
+            )
+
+            if lang == "kn":
+                resp_text = f"ಹೊಸ ಗ್ರಾಹಕ {new_cust.customer_name} ಯಶಸ್ವಿಯಾಗಿ ಸೇರಿಸಲಾಗಿದೆ."
+            elif lang == "ml":
+                resp_text = f"പുതിയ ഉപഭോക്താവ് {new_cust.customer_name} ചേർത്തു."
+            elif lang == "hi":
+                resp_text = f"नए ग्राहक {new_cust.customer_name} को सफलतापूर्वक जोड़ दिया गया है।"
+            elif lang == "ta":
+                resp_text = f"புதிய வாடிக்கையாளர் {new_cust.customer_name} வெற்றிகரமாக சேர்க்கப்பட்டார்."
+            else:
+                resp_text = f"New customer {new_cust.customer_name} added successfully."
+
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=lang)
+            VoiceOrchestrator._log_interaction(db, b_id, u_id, lang, f"CONFIRM {action_type}", "ADD_CUSTOMER", "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=f"Confirmed {action_data['summary']}",
+                detected_language=lang,
+                parsed_intent=ParsedIntent(intent=IntentType.ADD_CUSTOMER, language=lang),
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={"customer_id": str(new_cust.id), "customer_name": new_cust.customer_name}
             )
 
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported action type")

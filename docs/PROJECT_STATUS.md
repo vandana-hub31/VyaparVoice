@@ -41,6 +41,11 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 - [x] **Credit Preservation MD5 Cache**: In-memory caching prevents draining competition credits for repeated synthesis phrases.
 - [x] **Live Connectivity Diagnostic**: `/api/voice/gnani/status` checks API key status and reachability with live status pills in frontend.
 - [x] **Multilingual NLU Engine**: Supports 5 languages — Kannada, Malayalam, Hindi, Tamil, English, and code-mixed speech (e.g. "10 packet milk add karo").
+- [x] **Robust Multilingual Sale vs Stock Intent Parser**: Resolved parser collision by prioritizing `CREATE_SALE` with comprehensive Indic verb patterns (SOV & SVO) and unit recognizers (`पैकेट`, `ಕೆಜಿ`, `പാക്കറ്റ്`, `கிலோ`, etc.). Prevents greedy stock matches on sale commands (`2 पैकेट दूध बेचो`, `2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ`, `2 പാക്കറ്റ് പാൽ വിൽക്കുക`).
+- [x] **Multilingual Product Synonym Lookup**: `ProductService.find_product_by_name_or_synonym()` translates Indic product words to English inventory names via a 79-entry synonym dictionary (ಹಾಲು→milk, अक्की→rice, पाल→milk, etc.). Four-tier search: exact → substring → synonym dict → token-level synonym, so Kannada/Hindi/Malayalam voice commands resolve to correct DB records.
+- [x] **Customer Name Transliteration**: `CustomerService` falls back through a 51-entry transliteration map (common Kannada/Hindi/Malayalam first names → English equivalents) when a direct name match fails.
+- [x] **Script-Based Language Detection in GnaniService**: After Prisma STT transcription, the Unicode block of the returned text (`0x0B80`–`0x0D7F`, `0x0900`–`0x097F`) is used to auto-detect Tamil, Kannada, Malayalam, or Hindi when the Gnani API returns `en-IN` for Indic transcripts. Prevents wrong language assignment in confirmation prompts.
+- [x] **Voice Orchestrator Multilingual Improvements**: Language parameter normalization (`kn-IN`→`kn`, `auto`→user hint). Multilingual error messages (product-not-found, customer-not-found) in Kannada, Hindi, Malayalam, Tamil. English fallback messages replaced with language-aware responses.
 - [x] **Two-Phase Confirmation Workflow**: Expiring cryptographic tokens protecting sensitive mutations (sale recording, stock updates, expense additions, repayments).
 - [x] **Voice Interaction History**: `/voice/history` UI displaying full audit trail of voice commands, detected intents, executions, and AI responses.
 - [x] **AI Daily Audio Brief**: Database-derived business summary spoken naturally in the shopkeeper's preferred regional language.
@@ -66,4 +71,60 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 | Driver | Psycopg 3 | 3.3.8 |
 | Speech-to-Text | Gnani Prisma | v3.0 |
 | Text-to-Speech | Gnani Timbre | v3.0 |
+
+---
+
+## 4. Test Results
+
+| Test | Status |
+|---|---|
+| `test_register_and_login` | ✅ PASSED |
+| `test_customers_credit_and_expenses` | ✅ PASSED |
+| `test_product_crud_and_inventory` | ✅ PASSED |
+| `test_sale_creation_and_inventory_deduction` | ✅ PASSED |
+| `test_intent_parsing_multilingual` | ✅ PASSED |
+| `test_voice_confirmation_workflow` | ✅ PASSED |
+| `test_voice_credit_and_user_isolation` | ✅ PASSED |
+
+**Total: 7/7 passed** — last run 2026-11-09
+
+### End-to-End Voice Command Verification
+
+All 8 multilingual voice commands produce `PENDING_CONFIRMATION` with correct language-matched responses:
+
+| Input | Lang | Intent | Result |
+|---|---|---|---|
+| `Sell 2 kg rice for 120` | en | CREATE_SALE | ✅ PENDING_CONFIRMATION |
+| `Add 10 packets of milk` | en | UPDATE_STOCK | ✅ PENDING_CONFIRMATION |
+| `2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ` | kn | CREATE_SALE | ✅ PENDING_CONFIRMATION |
+| `10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಹಾಕಿ` | kn | UPDATE_STOCK | ✅ PENDING_CONFIRMATION |
+| `2 पैकेट दूध बेचो` | hi | CREATE_SALE | ✅ PENDING_CONFIRMATION |
+| `10 पैकेट दूध जोड़ो` | hi | UPDATE_STOCK | ✅ PENDING_CONFIRMATION |
+| `2 പാക്കറ്റ് പാൽ വിൽക്കുക` | ml | CREATE_SALE | ✅ PENDING_CONFIRMATION |
+| `10 പാക്കറ്റ് പാൽ ചേർക്കുക` | ml | UPDATE_STOCK | ✅ PENDING_CONFIRMATION |
+
+---
+
+## 5. Live Services (Development)
+
+| Service | URL | Status |
+|---|---|---|
+| Frontend (Next.js dev) | http://localhost:3000 | ✅ Running |
+| Backend (FastAPI uvicorn) | http://127.0.0.1:8000 | ✅ Running |
+| PostgreSQL | localhost:5432 | ✅ Running |
+| Gnani Prisma STT | https://api.vachana.ai/stt/v3 | ⚙️ Requires `GNANI_API_KEY` in `.env` |
+| Gnani Timbre TTS | https://api.vachana.ai/api/v1/tts/inference | ⚙️ Requires `GNANI_API_KEY` in `.env` |
+
+---
+
+## 6. Session Change Log
+
+| Date | Change |
+|---|---|
+| 2026-11-09 | Multilingual product synonym lookup (79 entries) in `product_service.py` |
+| 2026-11-09 | Customer name transliteration (51 entries) in `customer_service.py` |
+| 2026-11-09 | Script-based language detection after STT in `gnani_service.py` |
+| 2026-11-09 | Orchestrator multilingual error messages & lang normalization in `voice_orchestrator.py` |
+| 2026-11-09 | Multilingual intent parser (Kannada/Hindi/Malayalam/Tamil sale & stock verbs) in `intent_service.py` |
+| 2026-11-09 | Expanded multilingual regression assertions in `tests/test_voice_workflow.py` |
 

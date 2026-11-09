@@ -8,6 +8,57 @@ from fastapi import HTTPException, status
 from app.models.customer import Customer, CreditTransaction
 from app.schemas.customer import CustomerCreate, CustomerUpdate, RepaymentCreate
 
+CUSTOMER_NAME_TRANSLITERATIONS = {
+    # Kannada -> English
+    "ರಮೇಶ್": "Ramesh",
+    "ಸುರೇಶ್": "Suresh",
+    "ಮಹೇಶ್": "Mahesh",
+    "ರಾಜೇಶ್": "Rajesh",
+    "ದಿನೇಶ್": "Dinesh",
+    "ಪ್ರಕಾಶ್": "Prakash",
+    "ವಿಜಯ್": "Vijay",
+    "ಅನಿಲ್": "Anil",
+    "ಸುನಿಲ್": "Sunil",
+    "ಮಂಜುನಾಥ್": "Manjunath",
+    "ವೆಂಕಟೇಶ್": "Venkatesh",
+    "ಕೃಷ್ಣ": "Krishna",
+    "ಪ್ರಿಯ": "Priya",
+    "ಅನಿತಾ": "Anita",
+    "ಲಕ್ಷ್ಮಿ": "Lakshmi",
+
+    # Hindi -> English
+    "रमेश": "Ramesh",
+    "सुरेश": "Suresh",
+    "महेश": "Mahesh",
+    "राजेश": "Rajesh",
+    "दिनेश": "Dinesh",
+    "प्रकाश": "Prakash",
+    "विजय": "Vijay",
+    "अनिल": "Anil",
+    "सुनील": "Sunil",
+    "मंजूनाथ": "Manjunath",
+    "वेंकटेश": "Venkatesh",
+    "कृष्ण": "Krishna",
+    "प्रिया": "Priya",
+    "अनिता": "Anita",
+    "लक्ष्मी": "Lakshmi",
+
+    # Malayalam -> English
+    "രമേഷ്": "Ramesh",
+    "സുരേഷ്": "Suresh",
+    "മഹേഷ്": "Mahesh",
+    "രാജേഷ്": "Rajesh",
+    "ദിനേഷ്": "Dinesh",
+    "പ്രകാശ്": "Prakash",
+    "വിജയ്": "Vijay",
+    "അനിൽ": "Anil",
+    "സുനിൽ": "Sunil",
+    "കൃഷ്ണ": "Krishna",
+    "പ്രിയ": "Priya",
+    "അനിത": "Anita",
+    "ലക്ഷ്മി": "Lakshmi",
+}
+
 class CustomerService:
     @staticmethod
     def get_customers(
@@ -34,10 +85,23 @@ class CustomerService:
 
     @staticmethod
     def get_customer_by_name(db: Session, business_id: UUID, name: str) -> Optional[Customer]:
-        return db.query(Customer).filter(
+        clean_name = name.strip()
+        customer = db.query(Customer).filter(
             Customer.business_id == business_id,
-            Customer.customer_name.ilike(name.strip())
+            Customer.customer_name.ilike(clean_name)
         ).first()
+        if not customer:
+            customer = db.query(Customer).filter(
+                Customer.business_id == business_id,
+                Customer.customer_name.ilike(f"%{clean_name}%")
+            ).first()
+        if not customer and clean_name in CUSTOMER_NAME_TRANSLITERATIONS:
+            translit = CUSTOMER_NAME_TRANSLITERATIONS[clean_name]
+            customer = db.query(Customer).filter(
+                Customer.business_id == business_id,
+                Customer.customer_name.ilike(f"%{translit}%")
+            ).first()
+        return customer
 
     @staticmethod
     def create_customer(db: Session, business_id: UUID, data: CustomerCreate) -> Customer:
@@ -96,6 +160,22 @@ class CustomerService:
             transaction_type="REPAYMENT",
             amount=data.amount,
             description=f"{data.description} ({data.payment_method})"
+        )
+        db.add(tx)
+        db.commit()
+        db.refresh(tx)
+        return tx
+
+    @staticmethod
+    def record_credit(db: Session, business_id: UUID, customer_id: UUID, amount: Decimal, description: str = "Voice credit entry") -> CreditTransaction:
+        customer = CustomerService.get_customer_by_id(db, business_id, customer_id)
+        customer.outstanding_balance += amount
+        tx = CreditTransaction(
+            business_id=business_id,
+            customer_id=customer.id,
+            transaction_type="CREDIT_GIVEN",
+            amount=amount,
+            description=description
         )
         db.add(tx)
         db.commit()
