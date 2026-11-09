@@ -13,12 +13,14 @@ import {
   CheckCircle2,
   Receipt,
   RotateCcw,
+  MessageSquare,
   X
 } from "lucide-react";
 
 export default function CustomerLedgerPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { business, language } = useAuth();
   const [customer, setCustomer] = useState<any>(null);
   const [ledger, setLedger] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,13 +123,38 @@ export default function CustomerLedgerPage() {
             </span>
           </div>
 
-          <button
-            onClick={() => setShowRepayModal(true)}
-            className="px-4 py-2.5 bg-vyapar-600 hover:bg-vyapar-700 text-white font-bold text-xs rounded-xl shadow-md shadow-vyapar-200 transition-all flex items-center gap-1.5"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Record Repayment</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {due > 0 && customer.phone && (
+              <a
+                href={`https://wa.me/91${customer.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                  language === "kn"
+                    ? `ನಮಸ್ಕಾರ ${customer.customer_name}, ${business?.business_name || "ವ್ಯಾಪಾರವಾಯ್ಸ್"} ಕಡೆಯಿಂದ ನೆನಪೋಲೆ. ನಿಮ್ಮ ಬಾಕಿ ಹಣ ₹${due.toFixed(2)}. ದಯವಿಟ್ಟು ಪಾವತಿಸಿ. ಧನ್ಯವಾದಗಳು!`
+                    : language === "ml"
+                    ? `നമസ്കാരം ${customer.customer_name}, ${business?.business_name || "വ്യാപാരവോയിസ്"} ഓർമ്മപ്പെടുത്തൽ. നിങ്ങളുടെ ബാക്കി ₹${due.toFixed(2)} ആണ്. ദയവായി അടയ്ക്കുക. നന്ദി!`
+                    : language === "hi"
+                    ? `नमस्ते ${customer.customer_name}, ${business?.business_name || "व्यापारवॉयस"} की तरफ से बकाया याद दिलाने हेतु संदेश। आपका बकाया ₹${due.toFixed(2)} है। कृपया भुगतान करें। धन्यवाद!`
+                    : language === "ta"
+                    ? `வணக்கம் ${customer.customer_name}, ${business?.business_name || "வியாபார வாய்ஸ்"} நிலுவை நினைவூட்டல். உங்கள் கடன் தொகை ₹${due.toFixed(2)}. தயவுசெய்து செலுத்தவும். நன்றி!`
+                    : `Namaste ${customer.customer_name}, this is a gentle reminder from ${business?.business_name || "VyaparVoice Store"}. Your outstanding balance is ₹${due.toFixed(2)}. Please make the payment via UPI/Cash. Thank you!`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5"
+                title="Send WhatsApp Payment Reminder"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>WhatsApp Reminder</span>
+              </a>
+            )}
+
+            <button
+              onClick={() => setShowRepayModal(true)}
+              className="px-4 py-2.5 bg-vyapar-600 hover:bg-vyapar-700 text-white font-bold text-xs rounded-xl shadow-md shadow-vyapar-200 transition-all flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Record Repayment</span>
+            </button>
+          </div>
         </div>
       </div>
 

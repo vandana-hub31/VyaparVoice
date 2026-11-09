@@ -321,12 +321,26 @@ export default function BillingPage() {
 
           {/* Invoice popup preview */}
           {lastInvoice && (
-            <div className="mt-4 p-3 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900">
-              <div className="flex items-center justify-between font-bold mb-1">
-                <span>Invoice Generated!</span>
-                <span className="font-mono">{lastInvoice.invoice_number}</span>
+            <div className="mt-4 p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl text-xs text-emerald-900 space-y-2">
+              <div className="flex items-center justify-between font-bold">
+                <span className="flex items-center gap-1.5 text-emerald-800">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Bill Generated Successfully!
+                </span>
+                <span className="font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[11px]">
+                  {lastInvoice.invoice_number}
+                </span>
               </div>
-              <p>Total: ₹{Number(lastInvoice.total_amount).toFixed(2)} • {lastInvoice.payment_method}</p>
+              <p className="text-[11px] text-emerald-700">
+                Total: <strong>₹{Number(lastInvoice.total_amount).toFixed(2)}</strong> • Paid via {lastInvoice.payment_method}
+              </p>
+              <button
+                onClick={() => window.print()}
+                className="w-full py-1.5 bg-white border border-emerald-300 hover:bg-emerald-100 text-emerald-800 font-bold rounded-lg text-xs flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print Counter Receipt</span>
+              </button>
             </div>
           )}
         </div>
