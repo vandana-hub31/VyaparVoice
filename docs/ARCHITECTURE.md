@@ -101,3 +101,4 @@ sequenceDiagram
 3. **Inventory Isolation**:
    - Every product deduction is guarded against negative quantities unless explicitly configured.
    - Cancelled invoices trigger an automated rollback (`SALE_CANCEL_RESTORE`), returning quantities to stock and reversing any associated customer debt.
+

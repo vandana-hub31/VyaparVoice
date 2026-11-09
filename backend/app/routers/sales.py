@@ -82,3 +82,4 @@ def cancel_sale(
     res = SaleResponse.model_validate(sale)
     res.customer_name = c_name
     return res
+

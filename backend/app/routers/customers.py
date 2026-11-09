@@ -67,3 +67,4 @@ def record_customer_repayment(
     db: Session = Depends(get_db)
 ):
     return CustomerService.record_repayment(db, business.id, customer_id, data)
+

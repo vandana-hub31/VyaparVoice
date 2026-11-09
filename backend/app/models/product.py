@@ -24,3 +24,4 @@ class Product(Base):
     business = relationship("Business", back_populates="products")
     sale_items = relationship("SaleItem", back_populates="product")
     inventory_transactions = relationship("InventoryTransaction", back_populates="product", cascade="all, delete-orphan")
+

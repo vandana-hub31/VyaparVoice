@@ -74,3 +74,4 @@ def test_sale_creation_and_inventory_deduction(client):
     # Stock should be restored to 10.00
     prod_restored = client.get(f"/api/products/{prod_id}", headers=headers)
     assert Decimal(prod_restored.json()["current_stock"]) == Decimal("10.00")
+

@@ -144,3 +144,4 @@ All 6 test suites cover authentication, product CRUD, inventory deduction, idemp
 ## 📜 License
 Developed for the **Great Indian AI Internship Challenge 2026 by Gnani.ai**.
 All rights reserved.
+

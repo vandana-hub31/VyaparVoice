@@ -46,3 +46,4 @@ class VoiceSynthesisRequest(BaseModel):
 class VoiceSynthesisResponse(BaseModel):
     audio_base64: str
     mime_type: str = "audio/wav"
+

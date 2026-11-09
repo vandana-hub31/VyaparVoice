@@ -63,3 +63,4 @@ def test_product_crud_and_inventory(client):
     hist_resp = client.get("/api/inventory/history", headers=headers)
     assert hist_resp.status_code == 200
     assert len(hist_resp.json()) >= 2
+

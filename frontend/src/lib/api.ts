@@ -138,6 +138,7 @@ export const api = {
   getTopProducts: (limit = 5) => apiFetch(`/api/analytics/top-products?limit=${limit}`),
 
   // Voice Assistant
+  getGnaniStatus: () => apiFetch("/api/voice/gnani/status"),
   transcribeAudio: (formData: FormData) => apiFetch("/api/voice/transcribe", { method: "POST", body: formData }),
   processVoiceCommand: (body: { transcription: string; language?: string; idempotency_key?: string }) =>
     apiFetch("/api/voice/command", { method: "POST", body: JSON.stringify(body) }),
@@ -151,3 +152,4 @@ export const api = {
   seedDemoData: () => apiFetch("/api/demo/seed", { method: "POST" }),
   resetDemoData: () => apiFetch("/api/demo/reset", { method: "POST" }),
 };
+

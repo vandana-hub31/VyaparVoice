@@ -64,3 +64,4 @@ def delete_product(
 ):
     ProductService.delete_product(db, business.id, product_id)
     return {"status": "success", "message": "Product deleted successfully"}
+

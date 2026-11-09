@@ -20,3 +20,4 @@ class AuditLog(Base):
 
     business = relationship("Business", back_populates="audit_logs")
     user = relationship("User", back_populates="audit_logs")
+

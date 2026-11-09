@@ -42,3 +42,4 @@ class TopProduct(BaseModel):
     quantity_sold: Decimal
     revenue: Decimal
     profit: Decimal
+

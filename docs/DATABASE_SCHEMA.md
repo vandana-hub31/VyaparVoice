@@ -141,3 +141,4 @@ erDiagram
 - `previous_value` (TEXT, NULL)
 - `new_value` (TEXT, NULL)
 - `created_at` (TIMESTAMPTZ, INDEX)
+

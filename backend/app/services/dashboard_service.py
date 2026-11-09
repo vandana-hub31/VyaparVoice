@@ -207,9 +207,17 @@ class DashboardService:
                 f"अनुमानित सकल लाभ ₹{summary.estimated_gross_profit:,.2f}. "
                 f"कम स्टॉक वाले उत्पाद: {low_stock_names}."
             )
+        elif lang == "ta":
+            return (
+                f"இன்றைய வியாபார சுருக்கம்: மொத்த விற்பனை ₹{summary.today_sales:,.2f} "
+                f"({summary.transaction_count} பில்கள்). செலவுகள் ₹{summary.today_expenses:,.2f}. "
+                f"மதிப்பிடப்பட்ட மொத்த லாபம் ₹{summary.estimated_gross_profit:,.2f}. "
+                f"குறைந்த இருப்பு உள்ள பொருட்கள்: {low_stock_names}."
+            )
         else:
             return (
                 f"Today, your total sales were ₹{summary.today_sales:,.2f} across {summary.transaction_count} transactions. "
                 f"Recorded expenses were ₹{summary.today_expenses:,.2f}, and estimated gross profit was ₹{summary.estimated_gross_profit:,.2f}. "
                 f"{summary.low_stock_count} products are running low in stock."
             )
+

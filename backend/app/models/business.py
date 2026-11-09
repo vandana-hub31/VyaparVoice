@@ -27,3 +27,4 @@ class Business(Base):
     credit_transactions = relationship("CreditTransaction", back_populates="business", cascade="all, delete-orphan")
     voice_interactions = relationship("VoiceInteraction", back_populates="business", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="business", cascade="all, delete-orphan")
+

@@ -62,3 +62,4 @@ def get_current_business(
         db.commit()
         db.refresh(business)
     return business
+

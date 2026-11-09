@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { translations } from "@/lib/translations";
+import Link from "next/link";
 import {
   Mic,
   MicOff,
@@ -45,12 +46,26 @@ export default function VoiceAssistantPage() {
   const [inputText, setInputText] = useState("");
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [activeConfirmation, setActiveConfirmation] = useState<any>(null);
+  const [gnaniStatus, setGnaniStatus] = useState<any>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const t = translations[language] || translations.en;
+
+  useEffect(() => {
+    checkGnaniConnectivity();
+  }, []);
+
+  const checkGnaniConnectivity = async () => {
+    try {
+      const status = await api.getGnaniStatus();
+      setGnaniStatus(status);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const quickPrompts = [
     { lang: "en", text: "How much did I sell today?", label: "Today's Sales" },
@@ -61,6 +76,9 @@ export default function VoiceAssistantPage() {
     { lang: "ml", text: "ഇന്ന് എത്ര രൂപയുടെ വിൽപ്പനയായി?", label: "വിൽപ്പന എത്ര? (മലയാളം)" },
     { lang: "hi", text: "आज कितनी बिक्री हुई?", label: "आज की बिक्री (हिन्दी)" },
     { lang: "hi", text: "रमेश ने 200 रुपये दिए", label: "रमेश भुगतान (हिन्दी)" },
+    { lang: "ta", text: "இன்று எவ்வளவு விற்றோம்?", label: "இன்றைய விற்பனை (தமிழ்)" },
+    { lang: "ta", text: "இன்றைய லாபம் எவ்வளவு?", label: "இன்றைய லாபம் (தமிழ்)" },
+    { lang: "ta", text: "இன்று எவ்வளவு விற்றோம்?", label: "இன்றைய விற்பனை (தமிழ்)" },
   ];
 
   useEffect(() => {
@@ -71,6 +89,8 @@ export default function VoiceAssistantPage() {
       ? "നമസ്കാരം! വ്യാപാരവോയിസിലേക്ക് സ്വാഗതം. വിൽപ്പനയോ സ്റ്റോക്കോ കടമോ ശബ്ദത്തിലൂടെ നിയന്ത്രിക്കാം."
       : language === "hi"
       ? "नमस्ते! व्यापारवॉयस में आपका स्वागत है। आप बोलकर बिक्री दर्ज कर सकते हैं या स्टॉक जांच सकते हैं।"
+      : language === "ta"
+      ? "வணக்கம்! வியாபார வாய்சில் உங்களை வரவேற்கிறோம். குரலில் பேசி விற்பனை, சரக்கு அல்லது கடனை நிர்வகிக்கலாம்."
       : "Welcome to VyaparVoice! Speak or type to record sales, check inventory, or update customer credit.";
 
     setInteractions([
@@ -280,9 +300,26 @@ export default function VoiceAssistantPage() {
           <h1 className="text-2xl font-extrabold text-slate-900 mt-1">
             Shop Voice Assistant
           </h1>
-          <p className="text-xs text-slate-500">
-            Natural speech-to-text with Gnani Prisma & text-to-speech with Gnani Timbre
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            {gnaniStatus?.configured && gnaniStatus?.status === "active" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-bold">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Gnani Prisma & Timbre Live
+              </span>
+            ) : gnaniStatus?.configured && gnaniStatus?.status === "unauthorized" ? (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-300 text-[11px] font-bold">
+                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                Gnani Key Unauthorized (401)
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-medium">
+                Gnani Speech Architecture: Ready for GNANI_API_KEY
+              </span>
+            )}
+            <span className="text-xs text-slate-500">
+              Prisma v3.0 STT & Timbre v3.0 TTS
+            </span>
+          </div>
         </div>
 
         {/* Language selector badge */}
@@ -319,6 +356,14 @@ export default function VoiceAssistantPage() {
             }`}
           >
             English
+          </button>
+          <button
+            onClick={() => setLanguage("ta")}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              language === "ta" ? "bg-white text-vyapar-700 shadow-xs" : "text-slate-600"
+            }`}
+          >
+            தமிழ்
           </button>
         </div>
       </div>
@@ -484,6 +529,18 @@ export default function VoiceAssistantPage() {
           </form>
         </div>
       </div>
+
+      {/* View History Link */}
+      <div className="flex justify-center">
+        <Link
+          href="/voice/history"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 hover:border-vyapar-400 hover:bg-vyapar-50 text-slate-600 hover:text-vyapar-800 rounded-xl text-xs font-semibold shadow-xs transition-colors"
+        >
+          <Clock className="w-4 h-4" />
+          View Voice History
+        </Link>
+      </div>
     </div>
   );
 }
+

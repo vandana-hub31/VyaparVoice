@@ -42,3 +42,4 @@ VyaparVoice rejects the pattern of LLMs generating raw SQL or hallucinating mock
   - `docs/DATABASE_SCHEMA.md`
   - `docs/DEMO_GUIDE.md`
   - `docs/COMPETITION_SUBMISSION.md`
+

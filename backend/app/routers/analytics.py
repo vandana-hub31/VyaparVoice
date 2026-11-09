@@ -38,3 +38,4 @@ def get_top_products(
     db: Session = Depends(get_db)
 ):
     return DashboardService.get_top_products(db, business.id, limit=limit)
+

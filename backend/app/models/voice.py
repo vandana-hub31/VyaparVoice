@@ -20,3 +20,4 @@ class VoiceInteraction(Base):
 
     business = relationship("Business", back_populates="voice_interactions")
     user = relationship("User", back_populates="voice_interactions")
+

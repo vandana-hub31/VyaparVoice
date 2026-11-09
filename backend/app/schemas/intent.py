@@ -54,3 +54,4 @@ class ParsedIntent(BaseModel):
     # Clarification
     is_ambiguous: bool = False
     clarification_question: Optional[str] = None
+

@@ -212,3 +212,4 @@ class SalesService:
         db.commit()
         db.refresh(sale)
         return sale
+

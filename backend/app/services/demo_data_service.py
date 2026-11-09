@@ -294,3 +294,4 @@ class DemoDataService:
                 "customers_count": len(customers_data)
             }
         }
+

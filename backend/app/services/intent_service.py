@@ -8,6 +8,9 @@ class IntentService:
     def detect_language(text: str) -> str:
         """Detect language from Unicode block ranges."""
         for char in text:
+            # Tamil: 0x0B80 - 0x0BFF (must be before Malayalam since adjacent)
+            if '\u0B80' <= char <= '\u0BFF':
+                return "ta"
             # Kannada: 0x0C80 - 0x0CFF
             if '\u0C80' <= char <= '\u0CFF':
                 return "kn"
@@ -41,7 +44,8 @@ class IntentService:
             "today's sales", "todays sales", "sell today", "sales today", "how much did i sell", "today sale",
             "आज कितनी बिक्री", "आज की बिक्री", "आज कितना बिका", "इतना बिका",
             "ಇವತ್ತು ಎಷ್ಟು ಸೇಲ್", "ಇವತ್ತಿನ ಮಾರಾಟ", "ಎಷ್ಟು ಸೇಲ್ ಆಗಿದೆ", "ಇಂದಿನ ಮಾರಾಟ",
-            "ഇന്ന് എത്ര രൂപയുടെ വിൽപ്പന", "ഇന്നത്തെ വിൽപ്പന", "എത്ര രൂപയുടെ വിൽപ്പന"
+            "ഇന്ന് എത്ര രൂപയുടെ വിൽപ്പന", "ഇന്നത്തെ വിൽപ്പന", "എത്ര രൂപയുടെ വിൽപ്പന",
+            "இன்று எவ்வளவு விற்றோம்", "இன்றைய விற்பனை", "இன்று விற்பனை"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_TODAYS_SALES,
@@ -55,7 +59,8 @@ class IntentService:
             "profit", "gross profit", "how much profit", "profit today",
             "मुनाफा", "लाभ", "कितना लाभ", "आज का मुनाफा",
             "ಲಾಭ", "ಎಷ್ಟು ಲಾಭ", "ಇವತ್ತು ಎಷ್ಟು ಲಾಭ",
-            "ലാഭം", "എത്ര ലാഭം", "ഇന്ന് എത്ര ലാഭം"
+            "ലാഭം", "എത്ര ലാഭം", "ഇന്ന് എത്ര ലാഭം",
+            "லாபம்", "இன்றைய லாபம்"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_PROFIT_SUMMARY,
@@ -69,8 +74,9 @@ class IntentService:
             "expense summary", "my expenses", "how much expense", "total expenses", "show expenses",
             "खर्चे", "कुल खर्च", "आज का खर्च",
             "ಖರ್ಚು", "ಇವತ್ತಿನ ಖರ್ಚು", "ಖರ್ಚುಗಳು",
-            "ചെലവ്", "ഇന്നത്തെ ചെലവ്", "ആകെ ചെലവുകൾ"
-        ]) and not any(w in lower for w in ["add expense", "जोड़ो", "ಸೇರಿಸಿ", "ചേർക്കുക"]):
+            "ചെലവ്", "ഇന്നത്തെ ചെലവ്", "ആകെ ചെലവുകൾ",
+            "செலவு", "இன்றைய செலவு"
+        ]) and not any(w in lower for w in ["add expense", "जोड़ो", "ಸೇರಿಸಿ", "ചേർക്കുക", "செலவு சேர்"]):
             return ParsedIntent(
                 intent=IntentType.GET_EXPENSE_SUMMARY,
                 language=effective_lang,
@@ -83,7 +89,8 @@ class IntentService:
             "low stock", "low-stock", "running low", "shortage", "out of stock",
             "कम स्टॉक", "खत्म होने वाला",
             "ಕಡಿಮೆ ಸ್ಟಾಕ್", "ಸ್ಟಾಕ್ ಕಡಿಮೆ",
-            "കുറഞ്ഞ സ്റ്റോക്ക്", "സ്റ്റോക്ക് കുറവ്"
+            "കുറഞ്ഞ സ്റ്റോക്ക്", "സ്റ്റോക്ക് കുറവ്",
+            "குறைந்த சரக்கு", "சரக்கு குறைவு"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_LOW_STOCK,
@@ -96,7 +103,8 @@ class IntentService:
             "top product", "best selling", "top selling", "highest sales",
             "सबसे ज्यादा बिकने", "टॉप उत्पाद",
             "ಹೆಚ್ಚು ಮಾರಾಟ", "ಉತ್ತಮ ಉತ್ಪನ್ನ",
-            "കൂടുതൽ വിറ്റഴിക്കപ്പെടുന്ന", "മികച്ച ഉൽപ്പന്നങ്ങൾ"
+            "കൂടുതൽ വിറ്റഴിക്കപ്പെടുന്ന", "മികച്ച ഉൽപ്പന്നങ്ങൾ",
+            "அதிக விற்பனையான", "சிறந்த தயாரிப்புகள்"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_TOP_PRODUCTS,
@@ -109,7 +117,8 @@ class IntentService:
             "sales summary", "weekly sales", "monthly sales", "all sales",
             "बिक्री सारांश", "हफ्ते की बिक्री", "महीने की बिक्री",
             "ಮಾರಾಟ ಸಾರಾಂಶ", "ವಾರದ ಮಾರಾಟ",
-            "വിൽപ്പന വിവരണം", "ആഴ്ചയിലെ വിൽപ്പന"
+            "വിൽപ്പന വിവരണം", "ആഴ്ചയിലെ വിൽപ്പന",
+            "விற்பனை சுருக்கம்", "வார விற்பனை"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_SALES_SUMMARY,
@@ -122,7 +131,8 @@ class IntentService:
             "show inventory", "inventory list", "all stock", "product stock", "stock of",
             "स्टॉक सूची", "इन्वेंट्री",
             "ಇನ್ವೆಂಟರಿ", "ದಾಸ್ತಾನು",
-            "ഇൻവെന്ററി", "സ്റ്റോക്ക് വിവരം"
+            "ഇൻവെന്ററി", "സ്റ്റോക്ക് വിവരം",
+            "சரக்கு பட்டியல்", "இருப்பு விவரம்"
         ]):
             return ParsedIntent(
                 intent=IntentType.GET_INVENTORY,
@@ -132,7 +142,7 @@ class IntentService:
 
         # 8. RECORD_REPAYMENT
         # e.g. "Ramesh paid 200", "Received 500 from Suresh", "रमेश ने 200 रुपये दिए", "ರಮೇಶ್ 200 ರೂಪಾಯಿ ಕೊಟ್ಟರು"
-        repay_pattern = re.search(r'([A-Za-z\u0900-\u0D7F]+)\s+(?:paid|gives|gave|returned|ने|ಕೊಟ್ಟರು|തന്നു)\s*(?:₹|rs\.?|rupees|रुपये|ರೂಪಾಯಿ|രൂപ)?\s*(\d+(?:\.\d+)?)', cleaned, re.IGNORECASE)
+        repay_pattern = re.search(r'([A-Za-z\u0900-\u0D7F]+)\s+(?:paid|gives|gave|returned|ने|ಕೊಟ್ಟರು|തന്നു|கொடுத்தார்)\s*(?:₹|rs\.?|rupees|रुपये|ರೂಪಾಯಿ|രൂപ)?\s*(\d+(?:\.\d+)?)', cleaned, re.IGNORECASE)
         if repay_pattern or "repayment" in lower:
             cust_name = repay_pattern.group(1).strip() if repay_pattern else None
             amount = Decimal(repay_pattern.group(2)) if repay_pattern else None
@@ -165,7 +175,7 @@ class IntentService:
 
         # 10. GET_CUSTOMER_BALANCE
         # e.g. "How much does Ramesh owe?", "Ramesh balance", "रमेश का बकाया कितना है?"
-        if any(w in lower for w in ["owe", "balance", "बकाया", "ಉಳಿಕೆ", "ಬಾಕಿ", "കുടിശ്ശിക"]) and not any(w in lower for w in ["paid", "repay"]):
+        if any(w in lower for w in ["owe", "balance", "बकाया", "ಉಳಿಕೆ", "ಬಾಕಿ", "കുടിശ്ശിക", "கடன்"]) and not any(w in lower for w in ["paid", "repay"]):
             name_match = re.search(r'([A-Za-z\u0900-\u0D7F]+)(?:\s+(?:balance|owe|का बकाया|ಬಾಕಿ|കുടിശ്ശിക)|\'s balance)', cleaned, re.IGNORECASE)
             c_name = name_match.group(1).strip() if name_match else None
             return ParsedIntent(
@@ -279,3 +289,4 @@ class IntentService:
             is_ambiguous=True,
             clarification_question="I could not understand that command. You can say 'How much did I sell today?', 'Add 10 milk packets', or 'Sell 2 kg rice'."
         )
+

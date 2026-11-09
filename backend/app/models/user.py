@@ -20,3 +20,4 @@ class User(Base):
     businesses = relationship("Business", back_populates="owner", cascade="all, delete-orphan")
     voice_interactions = relationship("VoiceInteraction", back_populates="user")
     audit_logs = relationship("AuditLog", back_populates="user")
+

@@ -60,3 +60,4 @@ def delete_expense(
 ):
     ExpenseService.delete_expense(db, business.id, expense_id)
     return {"status": "success", "message": "Expense deleted successfully"}
+

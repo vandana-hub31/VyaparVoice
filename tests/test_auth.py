@@ -40,3 +40,4 @@ def test_register_and_login(client):
     assert "Test Shopkeeper" in b_data["business_name"]
     assert b_data["currency"] == "INR"
     assert b_data["timezone"] == "Asia/Kolkata"
+

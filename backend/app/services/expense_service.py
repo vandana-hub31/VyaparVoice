@@ -70,3 +70,4 @@ class ExpenseService:
         breakdown = {cat: amt for cat, amt in rows}
         total = sum(breakdown.values(), Decimal("0.00"))
         return {"total_expenses": total, "category_breakdown": breakdown}
+

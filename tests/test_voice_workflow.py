@@ -40,6 +40,11 @@ def test_intent_parsing_multilingual():
     assert p_hi_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_hi_sales.language == "hi"
 
+    # Tamil
+    p_ta_sales = IntentService.parse_text("இன்று எவ்வளவு விற்றோம்?")
+    assert p_ta_sales.intent == IntentType.GET_TODAYS_SALES
+    assert p_ta_sales.language == "ta"
+
     # Code-mixed Hinglish
     p_hinglish = IntentService.parse_text("10 packet milk add karo")
     assert p_hinglish.intent == IntentType.UPDATE_STOCK

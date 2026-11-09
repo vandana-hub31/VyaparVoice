@@ -14,3 +14,4 @@ def seed_demo_data(db: Session = Depends(get_db)):
 def reset_demo_data(db: Session = Depends(get_db)):
     result = DemoDataService.reset_and_seed_demo_data(db)
     return result
+

@@ -19,3 +19,4 @@ class InventoryTransaction(Base):
 
     business = relationship("Business", back_populates="inventory_transactions")
     product = relationship("Product", back_populates="inventory_transactions")
+

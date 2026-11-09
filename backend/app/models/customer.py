@@ -35,3 +35,4 @@ class CreditTransaction(Base):
     business = relationship("Business", back_populates="credit_transactions")
     customer = relationship("Customer", back_populates="credit_transactions")
     sale = relationship("Sale", back_populates="credit_transactions")
+

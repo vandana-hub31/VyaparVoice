@@ -159,3 +159,4 @@ class ProductService:
             .order_by(desc(InventoryTransaction.created_at))\
             .limit(limit)\
             .all()
+

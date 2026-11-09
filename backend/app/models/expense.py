@@ -17,3 +17,4 @@ class Expense(Base):
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     business = relationship("Business", back_populates="expenses")
+

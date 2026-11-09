@@ -29,3 +29,4 @@ def check_db_health(db: Session = Depends(get_db)):
             "connected": False,
             "error": str(e)
         }
+

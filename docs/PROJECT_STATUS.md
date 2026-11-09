@@ -36,10 +36,13 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 - [x] **Financial Analytics**: True gross profit calculated from purchase price snapshots at the time of sale. Clear distinction between sales revenue and gross/net profit.
 
 ### AI & Regional Voice Assistant
-- [x] **Gnani Prisma STT (v3.0)**: Integration with `https://api.vachana.ai/stt/v3` supporting multilingual speech recognition.
+- [x] **Gnani Prisma STT (v3.0)**: Integration with `https://api.vachana.ai/stt/v3` supporting multilingual speech recognition with `X-API-Key-ID` authentication.
 - [x] **Gnani Timbre TTS (v3.0)**: Integration with `https://api.vachana.ai/api/v1/tts/inference` generating natural Indian voice synthesis.
-- [x] **Multilingual NLU Engine**: Supports Kannada, Malayalam, Hindi, English, and code-mixed speech (e.g. "10 packet milk add karo").
+- [x] **Credit Preservation MD5 Cache**: In-memory caching prevents draining competition credits for repeated synthesis phrases.
+- [x] **Live Connectivity Diagnostic**: `/api/voice/gnani/status` checks API key status and reachability with live status pills in frontend.
+- [x] **Multilingual NLU Engine**: Supports 5 languages — Kannada, Malayalam, Hindi, Tamil, English, and code-mixed speech (e.g. "10 packet milk add karo").
 - [x] **Two-Phase Confirmation Workflow**: Expiring cryptographic tokens protecting sensitive mutations (sale recording, stock updates, expense additions, repayments).
+- [x] **Voice Interaction History**: `/voice/history` UI displaying full audit trail of voice commands, detected intents, executions, and AI responses.
 - [x] **AI Daily Audio Brief**: Database-derived business summary spoken naturally in the shopkeeper's preferred regional language.
 
 ### Demo & Testing
@@ -63,3 +66,4 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 | Driver | Psycopg 3 | 3.3.8 |
 | Speech-to-Text | Gnani Prisma | v3.0 |
 | Text-to-Speech | Gnani Timbre | v3.0 |
+

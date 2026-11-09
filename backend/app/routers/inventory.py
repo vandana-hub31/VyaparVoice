@@ -42,3 +42,4 @@ def get_inventory_history(
         item.product_name = p_name
         results.append(item)
     return results
+

@@ -55,3 +55,4 @@ def get_ai_daily_summary(
         "language": effective_lang,
         "summary": text
     }
+

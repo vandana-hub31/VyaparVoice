@@ -21,3 +21,4 @@ __all__ = [
     "IntentType", "ParsedIntent", "IntentItem",
     "TranscribeResponse", "VoiceCommandRequest", "VoiceCommandResponse", "VoiceConfirmRequest", "VoiceSynthesisRequest", "VoiceSynthesisResponse"
 ]
+

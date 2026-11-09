@@ -21,6 +21,11 @@ from app.utils.dependencies import get_current_business, get_current_user
 
 router = APIRouter(prefix="/api/voice", tags=["Voice Assistant"])
 
+@router.get("/gnani/status")
+async def get_gnani_status():
+    """Diagnostic check for Gnani API key and connectivity"""
+    return await GnaniService.verify_connectivity()
+
 @router.post("/transcribe", response_model=TranscribeResponse)
 async def transcribe_audio_file(
     file: UploadFile = File(...),
@@ -46,6 +51,13 @@ async def transcribe_audio_file(
         filename=file.filename or "recording.wav",
         language_code=language
     )
+
+    if res.get("error") and not res.get("transcription"):
+        # If API key is not configured or failed, report clearly
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY if "401" not in res.get("error", "") else status.HTTP_401_UNAUTHORIZED,
+            detail=res.get("error")
+        )
 
     return TranscribeResponse(
         transcription=res.get("transcription", ""),
@@ -121,3 +133,4 @@ def get_voice_history(
             "created_at": i.created_at.isoformat()
         } for i in interactions
     ]
+

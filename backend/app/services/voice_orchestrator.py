@@ -81,6 +81,8 @@ class VoiceOrchestrator:
                 resp_text = f"ഇന്നത്തെ ആകെ വിൽപ്പന ₹{summary.today_sales:,.2f} ആണ് ({summary.transaction_count} ഇടപാടുകൾ)."
             elif effective_lang == "hi":
                 resp_text = f"आज की कुल बिक्री ₹{summary.today_sales:,.2f} रही, जिसमें कुल {summary.transaction_count} बिल शामिल हैं।"
+            elif effective_lang == "ta":
+                resp_text = f"இன்று மொத்த விற்பனை ₹{summary.today_sales:,.2f} ({summary.transaction_count} பில்கள்)."
             else:
                 resp_text = f"Today's total sales are ₹{summary.today_sales:,.2f} across {summary.transaction_count} transactions."
 
@@ -105,6 +107,8 @@ class VoiceOrchestrator:
                 resp_text = f"ഇന്നത്തെ ഏകദേശ ലാഭം ₹{summary.estimated_gross_profit:,.2f} ആണ്."
             elif effective_lang == "hi":
                 resp_text = f"आज का अनुमानित सकल लाभ ₹{summary.estimated_gross_profit:,.2f} है।"
+            elif effective_lang == "ta":
+                resp_text = f"இன்றைய மதிப்பிடப்பட்ட மொத்த லாபம் ₹{summary.estimated_gross_profit:,.2f}."
             else:
                 resp_text = f"Your estimated gross profit for today is ₹{summary.estimated_gross_profit:,.2f}."
 
@@ -129,6 +133,8 @@ class VoiceOrchestrator:
                 resp_text = f"ഇന്നത്തെ ആകെ ചെലവ് ₹{summary.today_expenses:,.2f} ആണ്."
             elif effective_lang == "hi":
                 resp_text = f"आज के दर्ज किए गए कुल खर्चे ₹{summary.today_expenses:,.2f} हैं।"
+            elif effective_lang == "ta":
+                resp_text = f"இன்றைய பதிவு செய்யப்பட்ட வணிகச் செலவுகள் ₹{summary.today_expenses:,.2f}."
             else:
                 resp_text = f"Today's recorded business expenses are ₹{summary.today_expenses:,.2f}."
 
@@ -154,6 +160,8 @@ class VoiceOrchestrator:
                     resp_text = "എല്ലാ ഉൽപ്പന്നങ്ങളുടെയും സ്റ്റോക്ക് ആവശ്യത്തിനുണ്ട്."
                 elif effective_lang == "hi":
                     resp_text = "सभी उत्पादों का स्टॉक पर्याप्त है। कोई उत्पाद कम नहीं है।"
+                elif effective_lang == "ta":
+                    resp_text = "அனைத்து பொருட்களும் போதுமான அளவு இருப்பு உள்ளன."
                 else:
                     resp_text = "Great news! All products have healthy stock levels."
             else:
@@ -164,6 +172,8 @@ class VoiceOrchestrator:
                     resp_text = f"സ്റ്റോക്ക് കുറവുള്ള ഉൽപ്പന്നങ്ങൾ: {names}."
                 elif effective_lang == "hi":
                     resp_text = f"कम स्टॉक वाले आइटम: {names}."
+                elif effective_lang == "ta":
+                    resp_text = f"குறைந்த இருப்பு உள்ள பொருட்கள்: {names}."
                 else:
                     resp_text = f"Products running low on stock: {names}."
 
@@ -214,6 +224,8 @@ class VoiceOrchestrator:
                     resp_text = f"{cust.customer_name} നൽകാനുള്ള തുക ₹{cust.outstanding_balance:,.2f} ആണ്."
                 elif effective_lang == "hi":
                     resp_text = f"{cust.customer_name} का कुल बकाया ₹{cust.outstanding_balance:,.2f} है।"
+                elif effective_lang == "ta":
+                    resp_text = f"{cust.customer_name} அவர்களின் நிலுவை கடன் ₹{cust.outstanding_balance:,.2f}."
                 else:
                     resp_text = f"{cust.customer_name} owes ₹{cust.outstanding_balance:,.2f}."
 
@@ -264,6 +276,8 @@ class VoiceOrchestrator:
                 confirm_prompt = f"{prod.product_name} എന്നതിൽ {parsed.quantity} {prod.unit} സ്റ്റോക്ക് ചേർക്കണോ? സ്ഥിരീകരിക്കുക."
             elif effective_lang == "hi":
                 confirm_prompt = f"क्या आप {prod.product_name} में {parsed.quantity} {prod.unit} स्टॉक जोड़ना चाहते हैं? कृपया पुष्टि करें।"
+            elif effective_lang == "ta":
+                confirm_prompt = f"{prod.product_name} இல் {parsed.quantity} {prod.unit} சரக்கு சேர்க்க விரும்புகிறீர்களா? உறுதிப்படுத்தவும்."
             else:
                 confirm_prompt = f"You want to add {parsed.quantity} {prod.unit} of {prod.product_name}. Should I update the stock?"
 
@@ -330,6 +344,8 @@ class VoiceOrchestrator:
                 confirm_prompt = f"{parsed.quantity} {prod.unit} {prod.product_name} ₹{price:,.2f} ന് വിൽക്കാൻ ഉറപ്പാണോ?"
             elif effective_lang == "hi":
                 confirm_prompt = f"क्या आप ₹{price:,.2f} में {parsed.quantity} {prod.unit} {prod.product_name} की बिक्री दर्ज करना चाहते हैं?"
+            elif effective_lang == "ta":
+                confirm_prompt = f"{parsed.quantity} {prod.unit} {prod.product_name} ஐ ₹{price:,.2f} க்கு விற்பனை பதிவு செய்யவா? உறுதிப்படுத்தவும்."
             else:
                 confirm_prompt = f"Record sale of {parsed.quantity} {prod.unit} {prod.product_name} for ₹{price:,.2f}. Should I confirm?"
 
@@ -391,6 +407,8 @@ class VoiceOrchestrator:
                 confirm_prompt = f"{cust.customer_name} ൽ നിന്ന് ₹{parsed.amount:,.2f} തിരിച്ചടവ് രേഖപ്പെടുത്തണോ?"
             elif effective_lang == "hi":
                 confirm_prompt = f"क्या {cust.customer_name} से ₹{parsed.amount:,.2f} का भुगतान दर्ज करें?"
+            elif effective_lang == "ta":
+                confirm_prompt = f"{cust.customer_name} இடமிருந்து ₹{parsed.amount:,.2f} திரும்ப கட்டுதல் பதிவு செய்யவா?"
             else:
                 confirm_prompt = f"Record repayment of ₹{parsed.amount:,.2f} from {cust.customer_name}?"
 
@@ -439,6 +457,8 @@ class VoiceOrchestrator:
                 confirm_prompt = f"₹{parsed.amount:,.2f} ചെലവ് രേഖപ്പെടുത്തണോ?"
             elif effective_lang == "hi":
                 confirm_prompt = f"क्या ₹{parsed.amount:,.2f} का खर्च जोड़ें?"
+            elif effective_lang == "ta":
+                confirm_prompt = f"₹{parsed.amount:,.2f} செலவை {parsed.expense_category or 'பொதுவான'} பிரிவில் சேர்க்கவா?"
             else:
                 confirm_prompt = f"Record expense of ₹{parsed.amount:,.2f} for {parsed.expense_category or 'General'}?"
 
@@ -509,6 +529,8 @@ class VoiceOrchestrator:
                 resp_text = "പ്രവർത്തനം റദ്ദാക്കി."
             elif lang == "hi":
                 resp_text = "कार्रवाई रद्द कर दी गई है।"
+            elif lang == "ta":
+                resp_text = "செயல் ரத்து செய்யப்பட்டது."
             else:
                 resp_text = "Action cancelled."
             
@@ -541,6 +563,8 @@ class VoiceOrchestrator:
                 resp_text = f"വിജയകരമായി പുതുക്കി. {prod.product_name} ഇപ്പോൾ {prod.current_stock} {prod.unit} സ്റ്റോക്കുണ്ട്."
             elif lang == "hi":
                 resp_text = f"सफलतापूर्वक अपडेट किया गया। {prod.product_name} का नया स्टॉक अब {prod.current_stock} {prod.unit} है।"
+            elif lang == "ta":
+                resp_text = f"வெற்றிகரமாக புதுப்பிக்கப்பட்டது. {prod.product_name} இருப்பு இப்போது {prod.current_stock} {prod.unit} உள்ளது."
             else:
                 resp_text = f"Successfully updated. {prod.product_name} stock is now {prod.current_stock} {prod.unit}."
 
@@ -576,6 +600,8 @@ class VoiceOrchestrator:
                 resp_text = f"വിൽപ്പന രേഖപ്പെടുത്തി. ഇൻവോയ്സ്: {sale.invoice_number}, ആകെ തുക: ₹{sale.total_amount:,.2f}."
             elif lang == "hi":
                 resp_text = f"बिक्री सफलतापूर्वक दर्ज की गई। बिल नंबर {sale.invoice_number}, कुल राशि ₹{sale.total_amount:,.2f}।"
+            elif lang == "ta":
+                resp_text = f"விற்பனை வெற்றிகரமாக பதிவானது. பில் எண்: {sale.invoice_number}, மொத்தம்: ₹{sale.total_amount:,.2f}."
             else:
                 resp_text = f"Sale recorded successfully! Invoice {sale.invoice_number} for ₹{sale.total_amount:,.2f}."
 
@@ -607,6 +633,8 @@ class VoiceOrchestrator:
                 resp_text = f"തിരിച്ചടവ് രേഖപ്പെടുത്തി. {cust.customer_name} ഇനി ബാക്കി നൽകാനുള്ളത് ₹{cust.outstanding_balance:,.2f}."
             elif lang == "hi":
                 resp_text = f"भुगतान दर्ज कर लिया गया है। {cust.customer_name} का शेष बकाया ₹{cust.outstanding_balance:,.2f} है।"
+            elif lang == "ta":
+                resp_text = f"திரும்ப செலுத்துதல் பதிவானது. {cust.customer_name} அவர்களின் மீதி நிலுவை ₹{cust.outstanding_balance:,.2f}."
             else:
                 resp_text = f"Repayment recorded! {cust.customer_name}'s remaining balance is ₹{cust.outstanding_balance:,.2f}."
 
@@ -641,6 +669,8 @@ class VoiceOrchestrator:
                 resp_text = f"₹{exp.amount:,.2f} ചെലവ് രേഖപ്പെടുത്തി."
             elif lang == "hi":
                 resp_text = f"₹{exp.amount:,.2f} का खर्च {exp.category} श्रेणी में दर्ज कर लिया गया है।"
+            elif lang == "ta":
+                resp_text = f"₹{exp.amount:,.2f} செலவு {exp.category} பிரிவில் சேர்க்கப்பட்டது."
             else:
                 resp_text = f"Recorded expense of ₹{exp.amount:,.2f} under {exp.category}."
 
@@ -684,3 +714,4 @@ class VoiceOrchestrator:
             db.commit()
         except Exception:
             db.rollback()
+

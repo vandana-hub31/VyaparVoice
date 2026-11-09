@@ -88,3 +88,4 @@ def test_customers_credit_and_expenses(client):
     # Gross profit: (120 - 90) * 2 = 60
     assert Decimal(summary["estimated_gross_profit"]) == Decimal("60.00")
     assert Decimal(summary["outstanding_credit"]) == Decimal("440.00")
+
