@@ -81,7 +81,29 @@ class VoiceOrchestrator:
         effective_lang = parsed.language
 
         # READ-ONLY ACTIONS
-        if parsed.intent == IntentType.GET_TODAYS_SALES:
+        if parsed.intent == IntentType.GET_DAILY_SUMMARY:
+            summary = DashboardService.get_summary(db, business.id)
+            resp_text = DashboardService.generate_daily_summary_text(db, business.id, lang=effective_lang)
+            audio_b64 = await GnaniService.synthesize_speech(resp_text, language=effective_lang)
+            VoiceOrchestrator._log_interaction(db, business.id, user.id, effective_lang, transcription, parsed.intent.value, "SUCCESS", resp_text)
+
+            return VoiceCommandResponse(
+                transcription=transcription,
+                detected_language=effective_lang,
+                parsed_intent=parsed,
+                execution_status="SUCCESS",
+                response_text=resp_text,
+                audio_base64=audio_b64,
+                data={
+                    "today_sales": float(summary.today_sales),
+                    "today_expenses": float(summary.today_expenses),
+                    "estimated_gross_profit": float(summary.estimated_gross_profit),
+                    "transactions": summary.transaction_count,
+                    "low_stock_count": summary.low_stock_count
+                }
+            )
+
+        elif parsed.intent == IntentType.GET_TODAYS_SALES:
             summary = DashboardService.get_summary(db, business.id)
             if effective_lang == "kn":
                 resp_text = f"ಇವತ್ತಿನ ಒಟ್ಟು ಮಾರಾಟ ₹{summary.today_sales:,.2f}. ಒಟ್ಟು {summary.transaction_count} ಬಿಲ್‌ಗಳು ದಾಖಲಾಗಿವೆ."

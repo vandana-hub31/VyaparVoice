@@ -106,6 +106,51 @@ def test_intent_parsing_multilingual():
     assert p_ta_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_ta_sales.language == "ta"
 
+    # Daily business summary regression tests (Kannada, Hindi, Malayalam, English)
+    kn_summary_cmds = [
+        "ಇವತ್ತಿನ ವ್ಯಾಪಾರದ ಬಗ್ಗೆ ತಿಳಿಸುವಿರಾ?",
+        "ಇವತ್ತಿನ ವ್ಯಾಪಾರ ಹೇಗಿದೆ?",
+        "ಇವತ್ತು ಎಷ್ಟು ವ್ಯಾಪಾರ ಆಗಿದೆ?",
+        "ಇಂದಿನ ಮಾರಾಟ ಎಷ್ಟು?",
+        "ಇವತ್ತಿನ ಲೆಕ್ಕ ಹೇಳಿ",
+        "ಇವತ್ತಿನ ಆದಾಯ ಮತ್ತು ಖರ್ಚು ತಿಳಿಸಿ"
+    ]
+    for cmd in kn_summary_cmds:
+        p_kn_sum = IntentService.parse_text(cmd)
+        assert p_kn_sum.intent == IntentType.GET_DAILY_SUMMARY, f"Failed intent for: {cmd}"
+        assert p_kn_sum.language == "kn", f"Failed language for: {cmd}"
+
+    # English daily summary
+    p_en_sum1 = IntentService.parse_text("tell me about today's business")
+    assert p_en_sum1.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_en_sum1.language == "en"
+
+    p_en_sum2 = IntentService.parse_text("how is business today?")
+    assert p_en_sum2.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_en_sum2.language == "en"
+
+    p_en_sum3 = IntentService.parse_text("today's business summary")
+    assert p_en_sum3.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_en_sum3.language == "en"
+
+    # Hindi daily summary
+    p_hi_sum1 = IntentService.parse_text("आज का व्यापार कैसा रहा?")
+    assert p_hi_sum1.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_hi_sum1.language == "hi"
+
+    p_hi_sum2 = IntentService.parse_text("आज का हिसाब बताओ")
+    assert p_hi_sum2.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_hi_sum2.language == "hi"
+
+    # Malayalam daily summary
+    p_ml_sum1 = IntentService.parse_text("ഇന്നത്തെ ബിസിനസ്സ് എങ്ങനെയുണ്ട്?")
+    assert p_ml_sum1.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_ml_sum1.language == "ml"
+
+    p_ml_sum2 = IntentService.parse_text("ഇന്നത്തെ കണക്ക് പറയൂ")
+    assert p_ml_sum2.intent == IntentType.GET_DAILY_SUMMARY
+    assert p_ml_sum2.language == "ml"
+
     # Code-mixed Hinglish & Romanized
     p_hinglish = IntentService.parse_text("10 packet milk add karo")
     assert p_hinglish.intent == IntentType.UPDATE_STOCK
@@ -241,3 +286,23 @@ def test_audio_upload_validation_and_synthesis(client):
     assert synth_resp.status_code in [200, 500]
     if synth_resp.status_code == 200:
         assert "audio_base64" in synth_resp.json()
+
+def test_daily_summary_voice_command(client):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # Test the failing Kannada command through the real API endpoint
+    cmd = "ಇವತ್ತಿನ ವ್ಯಾಪಾರದ ಬಗ್ಗೆ ತಿಳಿಸುವಿರಾ?"
+    resp = client.post("/api/voice/command", json={
+        "transcription": cmd,
+        "language": "auto"
+    }, headers=headers)
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["parsed_intent"]["intent"] == "GET_DAILY_SUMMARY"
+    assert data["detected_language"] == "kn"
+    assert data["execution_status"] == "SUCCESS"
+    assert "ಇವತ್ತಿನ ವ್ಯವಹಾರ ಸಾರಾಂಶ" in data["response_text"]
+    assert "today_sales" in data["data"]
+    assert "estimated_gross_profit" in data["data"]

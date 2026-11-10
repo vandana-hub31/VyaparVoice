@@ -4,6 +4,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field
 
 class IntentType(str, Enum):
+    GET_DAILY_SUMMARY = "GET_DAILY_SUMMARY"
     GET_TODAYS_SALES = "GET_TODAYS_SALES"
     GET_SALES_SUMMARY = "GET_SALES_SUMMARY"
     GET_PROFIT_SUMMARY = "GET_PROFIT_SUMMARY"

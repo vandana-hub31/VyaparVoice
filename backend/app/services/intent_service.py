@@ -131,7 +131,64 @@ class IntentService:
         else:
             effective_lang = detected_lang
 
-        # 1. GET_TODAYS_SALES
+        # 1. GET_DAILY_SUMMARY
+        # Natural daily business summary requests in Kannada, Hindi, Malayalam, Tamil, and English:
+        # e.g. "ಇವತ್ತಿನ ವ್ಯಾಪಾರದ ಬಗ್ಗೆ ತಿಳಿಸುವಿರಾ?", "ಇವತ್ತಿನ ವ್ಯಾಪಾರ ಹೇಗಿದೆ?", "ಇವತ್ತು ಎಷ್ಟು ವ್ಯಾಪಾರ ಆಗಿದೆ?",
+        # "ಇಂದಿನ ಮಾರಾಟ ಎಷ್ಟು?", "ಇವತ್ತಿನ ಲೆಕ್ಕ ಹೇಳಿ", "ಇವತ್ತಿನ ಆದಾಯ ಮತ್ತು ಖರ್ಚು ತಿಳಿಸಿ",
+        # "tell me about today's business", "how is business today?", "give me today's summary", "daily business summary",
+        # "आज का व्यापार कैसा रहा?", "आज का कारोबार कैसा है?", "आज के व्यापार के बारे में बताओ", "आज का हिसाब बताओ", "आज की आय और खर्च बताओ",
+        # "ഇന്നത്തെ ബിസിനസ്സ് എങ്ങനെയുണ്ട്?", "ഇന്നത്തെ കണക്ക് പറയൂ", "ഇന്നത്തെ കച്ചവടം എങ്ങനെയുണ്ട്?", "ഇന്നത്തെ വരുമാനവും ചെലവും പറയൂ"
+        clean_text_for_summary = re.sub(r'[\?\.!,;]', '', lower).strip()
+        daily_summary_patterns = [
+            # Kannada
+            r'ವ್ಯಾಪಾರದ\s+ಬಗ್ಗೆ',
+            r'ವ್ಯಾಪಾರ\s+ಹೇಗಿದೆ',
+            r'ಎಷ್ಟು\s+ವ್ಯಾಪಾರ\s+ಆಗಿದೆ',
+            r'ಇಂದಿನ\s+ಮಾರಾಟ\s+ಎಷ್ಟು',
+            r'ಇವತ್ತಿನ\s+ಮಾರಾಟ\s+ಎಷ್ಟು',
+            r'ಇವತ್ತಿನ\s+ಲೆಕ್ಕ',
+            r'ಆದಾಯ\s+ಮತ್ತು\s+ಖರ್ಚು',
+            r'ವ್ಯವಹಾರ\s+ಸಾರಾಂಶ',
+            r'ದೈನಂದಿನ\s+ಸಾರಾಂಶ',
+            # English
+            r'today\'?s?\s+business',
+            r'business\s+today',
+            r'daily\s+(?:business\s+)?summary',
+            r'today\'?s?\s+summary',
+            r'give\s+me\s+today\'?s?\s+summary',
+            r'today\'?s?\s+revenue\s+and\s+expenses',
+            # Hindi
+            r'व्यापार\s+कैसा',
+            r'कारोबार\s+कैसा',
+            r'व्यापार\s+के\s+बारे',
+            r'कारोबार\s+के\s+बारे',
+            r'आज\s+का\s+हिसाब',
+            r'आय\s+और\s+खर्च',
+            r'दैनिक\s+सारांश',
+            r'व्यापार\s+सारांश',
+            # Malayalam
+            r'ബിസിനസ്സ്\s+എങ്ങനെയുണ്ട്',
+            r'കച്ചവടം\s+എങ്ങനെയുണ്ട്',
+            r'ബിസിനസ്സ്\s+വിവരം',
+            r'ഇന്നത്തെ\s+കണക്ക്',
+            r'വരുമാനവും\s+ചെലവും',
+            r'ദിവസേനയുള്ള\s+വിവരണം',
+            # Tamil
+            r'வியாபாரம்\s+எப்படி',
+            r'வியாபாரத்தை\s+பற்றி',
+            r'இன்றைய\s+கணக்கு',
+            r'வருமானம்\s+மற்றும்\s+செலவு',
+            r'வியாபார\s+சுருக்கம்'
+        ]
+        if any(re.search(p, lower) or re.search(p, clean_text_for_summary) for p in daily_summary_patterns):
+            return ParsedIntent(
+                intent=IntentType.GET_DAILY_SUMMARY,
+                language=effective_lang,
+                requires_confirmation=False,
+                time_period="today"
+            )
+
+        # 2. GET_TODAYS_SALES
         if any(w in lower for w in [
             "today's sales", "todays sales", "sell today", "sales today", "how much did i sell", "today sale",
             "आज कितनी बिक्री", "आज की बिक्री", "आज कितना बिका", "इतना बिका",
