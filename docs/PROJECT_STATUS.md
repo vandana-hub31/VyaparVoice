@@ -86,15 +86,17 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 | `test_voice_confirmation_workflow` | ✅ PASSED |
 | `test_voice_credit_and_user_isolation` | ✅ PASSED |
 | `test_audio_upload_validation_and_synthesis` | ✅ PASSED |
+| `test_daily_summary_voice_command` | ✅ PASSED |
 
-**Total: 8/8 passed** — last run 2026-11-10
+**Total: 9/9 passed** — last run 2026-11-10
 
 ### End-to-End Voice Command Verification
 
-All 8 multilingual voice commands produce `PENDING_CONFIRMATION` with correct language-matched responses:
+All 8 multilingual voice commands produce `PENDING_CONFIRMATION` with correct language-matched responses, and daily business summary queries produce `SUCCESS` with real PostgreSQL figures:
 
 | Input | Lang | Intent | Result |
 |---|---|---|---|
+| `ಇವತ್ತಿನ ವ್ಯಾಪಾರದ ಬಗ್ಗೆ ತಿಳಿಸುವಿರಾ?` | kn | GET_DAILY_SUMMARY | ✅ SUCCESS (kn speech + metrics) |
 | `Sell 2 kg rice for 120` | en | CREATE_SALE | ✅ PENDING_CONFIRMATION |
 | `Add 10 packets of milk` | en | UPDATE_STOCK | ✅ PENDING_CONFIRMATION |
 | `2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ` | kn | CREATE_SALE | ✅ PENDING_CONFIRMATION |
