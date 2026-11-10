@@ -83,10 +83,10 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Gnani AI Badge */}
+      {/* Multilingual Assistant Badge */}
       <div className="mt-auto p-3 bg-slate-50 border border-slate-200 rounded-xl">
-        <p className="text-[11px] font-semibold text-slate-700">Gnani AI Voice Architecture</p>
-        <p className="text-[10px] text-slate-500 mt-0.5">Prisma STT & Timbre TTS Integrated</p>
+        <p className="text-[11px] font-semibold text-slate-700">Multilingual Assistant</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">Kannada • Malayalam • Hindi • English</p>
       </div>
     </aside>
   );

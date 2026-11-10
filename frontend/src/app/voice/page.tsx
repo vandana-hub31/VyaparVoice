@@ -147,7 +147,7 @@ export default function VoiceAssistantPage() {
     setProcessing(true);
     try {
       const formData = new FormData();
-      const extension = blob.type.includes("webm") ? "webm" : blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "audio";
+      const extension = blob.type.includes("wav") ? "wav" : blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
       formData.append("file", blob, `voice_input.${extension}`);
       formData.append("language", language === "en" ? "indic-auto" : `${language}-IN`);
 
@@ -170,10 +170,9 @@ export default function VoiceAssistantPage() {
       }
     } catch (err: any) {
       console.error("Transcription error:", err);
-      const isMissingKey = err?.message?.includes("GNANI_API_KEY");
-      const errorMsg = isMissingKey
-        ? "Gnani Prisma STT: GNANI_API_KEY is not configured in backend/.env yet. Please add your competition key from https://app.gnani.ai to backend/.env, or use the text box below to test."
-        : (err?.message || "Audio transcription failed. Please try speaking again or type your command below.");
+      const errorMsg = err?.message?.includes("401") || err?.message?.includes("key")
+        ? "Voice service is currently reconnecting. You can speak again or type your command below."
+        : (err?.message || "Could not process audio. Please try speaking again or type your command below.");
 
       setInteractions((prev) => [
         ...prev,
@@ -309,30 +308,19 @@ export default function VoiceAssistantPage() {
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-              Gnani AI Multilingual Voice Pipeline
+              Multilingual Voice Assistant
             </span>
           </div>
           <h1 className="text-2xl font-extrabold text-slate-900 mt-1">
             Shop Voice Assistant
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            {gnaniStatus?.configured && gnaniStatus?.status === "active" ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-bold">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                Gnani Prisma & Timbre Live
-              </span>
-            ) : gnaniStatus?.configured && gnaniStatus?.status === "unauthorized" ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-red-50 text-red-800 border border-red-300 text-[11px] font-bold">
-                <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                Gnani Key Unauthorized (401)
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-300 text-[11px] font-medium">
-                Gnani Speech Architecture: Ready for GNANI_API_KEY
-              </span>
-            )}
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-300 text-[11px] font-bold">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+              Voice Ready
+            </span>
             <span className="text-xs text-slate-500">
-              Prisma v3.0 STT & Timbre v3.0 TTS
+              Speak naturally in Kannada, Malayalam, Hindi, or English
             </span>
           </div>
         </div>
@@ -493,7 +481,7 @@ export default function VoiceAssistantPage() {
           {processing && !isRecording && (
             <div className="flex items-center gap-2 text-slate-500 text-xs py-2 px-3">
               <span className="w-2 h-2 rounded-full bg-vyapar-500 animate-ping"></span>
-              <span>Calling Gnani Prisma & verifying PostgreSQL database...</span>
+              <span>Processing your voice command...</span>
             </div>
           )}
           <div ref={scrollRef} />

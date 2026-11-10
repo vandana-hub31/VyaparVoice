@@ -73,9 +73,9 @@ export default function LandingPage() {
           <div className="w-12 h-12 rounded-xl bg-vyapar-100 text-vyapar-700 flex items-center justify-center mb-4">
             <Mic className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-lg text-slate-900">Gnani Prisma STT</h3>
+          <h3 className="font-bold text-lg text-slate-900">Instant Voice Commands</h3>
           <p className="text-sm text-slate-600 mt-2">
-            Speak commands like <em>&quot;10 packets milk add karo&quot;</em> or <em>&quot;ಇವತ್ತು ಎಷ್ಟು ಸೇಲ್ ಆಗಿದೆ?&quot;</em>. Fast, accurate transcription optimized for Indian regional dialects.
+            Speak commands like <em>&quot;10 packets milk add karo&quot;</em> or <em>&quot;ಇವತ್ತು ಎಷ್ಟು ಸೇಲ್ ಆಗಿದೆ?&quot;</em>. Fast, accurate transcription optimized for Indian regional languages and store dialects.
           </p>
         </div>
 
@@ -83,9 +83,9 @@ export default function LandingPage() {
           <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center mb-4">
             <ShieldCheck className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-lg text-slate-900">Verified Business Actions</h3>
+          <h3 className="font-bold text-lg text-slate-900">Safe Business Actions</h3>
           <p className="text-sm text-slate-600 mt-2">
-            No hallucinations or fake data. Every voice command executes verified PostgreSQL transactions with two-phase confirmations for safe inventory updates.
+            Every critical voice action is confirmed before updating your records. Maintain sales, inventory, and customer khata with complete accuracy and peace of mind.
           </p>
         </div>
 
@@ -93,9 +93,9 @@ export default function LandingPage() {
           <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center mb-4">
             <Languages className="w-6 h-6" />
           </div>
-          <h3 className="font-bold text-lg text-slate-900">Gnani Timbre TTS</h3>
+          <h3 className="font-bold text-lg text-slate-900">Spoken Voice Responses</h3>
           <p className="text-sm text-slate-600 mt-2">
-            Hears back vocal answers in your regional language. Natural Indian speech synthesis for daily sales summaries, low-stock warnings, and payment confirmations.
+            Hear natural spoken responses in your chosen regional language. Get instant audio updates for daily sales summaries, low-stock alerts, and customer balances.
           </p>
         </div>
       </div>

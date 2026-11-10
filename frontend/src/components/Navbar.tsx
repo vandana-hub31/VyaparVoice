@@ -62,7 +62,7 @@ export default function Navbar() {
           <button
             onClick={handleResetDemo}
             disabled={resetting}
-            title="Reset PostgreSQL sample data"
+            title="Reset sample data"
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
           >
             {resetSuccess ? (

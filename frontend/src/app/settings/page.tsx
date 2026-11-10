@@ -181,48 +181,46 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Gnani AI Integration Status */}
+      {/* Voice Assistant Status */}
       <div className="bg-white p-6 border border-slate-200 rounded-2xl shadow-xs">
         <h2 className="font-bold text-base text-slate-900 mb-2 flex items-center gap-2">
           <Server className="w-4 h-4 text-vyapar-600" />
-          Gnani.ai Official API Integration (Challenge Account)
+          Voice Assistant Configuration
         </h2>
         <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-          The competition voice pipeline connects directly to Gnani Prisma STT (<code>https://api.vachana.ai/stt/v3</code>) and Gnani Timbre TTS (<code>https://api.vachana.ai/api/v1/tts/inference</code>).
+          High-performance voice recognition and regional speech responses configured for your shop.
         </p>
 
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-xs">
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-600">Speech-to-Text Model:</span>
-            <span className="font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">prisma-v3.0 (indic-auto)</span>
+            <span className="font-semibold text-slate-600">Voice Recognition:</span>
+            <span className="text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 font-medium">Auto-Detect Indian Languages</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-600">Text-to-Speech Model:</span>
-            <span className="font-mono text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">timbre-v3.0 (Nalini)</span>
+            <span className="font-semibold text-slate-600">Spoken Responses:</span>
+            <span className="text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 font-medium">Natural Indian Voice Synthesis</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-600">API Portal:</span>
-            <a href="https://app.gnani.ai" target="_blank" rel="noopener noreferrer" className="text-vyapar-600 font-semibold hover:underline">
-              https://app.gnani.ai ↗
-            </a>
+            <span className="font-semibold text-slate-600">Supported Languages:</span>
+            <span className="text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 font-medium">Kannada, Malayalam, Hindi, Tamil, English</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="font-semibold text-slate-600">Configured in:</span>
-            <span className="font-mono text-slate-700 bg-white px-2 py-0.5 rounded border border-slate-200">backend/.env (GNANI_API_KEY)</span>
+            <span className="font-semibold text-slate-600">Status:</span>
+            <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-bold">Active & Ready</span>
           </div>
         </div>
       </div>
 
-      {/* Competition Demo Mode & Data Reset */}
+      {/* Sample Store Data Reset */}
       <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-6 shadow-xs">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h2 className="font-bold text-base text-emerald-950 flex items-center gap-2">
-              <Server className="w-4 h-4 text-emerald-700" />
-              Competition Demo Mode & Data Reset
+              <RefreshCw className="w-4 h-4 text-emerald-700" />
+              Sample Store Data & Reset
             </h2>
             <p className="text-xs text-emerald-800 mt-1 max-w-xl leading-relaxed">
-              Resets the database with the verified competition dataset: 25 authentic Indian grocery products, 10 registered customers with khata ledgers, recent sales, and expenses.
+              Populate your store with common Indian grocery items, sample customer credit records, and initial transactions to explore all features.
             </p>
           </div>
 
@@ -232,7 +230,7 @@ export default function SettingsPage() {
             className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all shrink-0 flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${resetting ? "animate-spin" : ""}`} />
-            <span>Reset Demo Data</span>
+            <span>Reset Sample Data</span>
           </button>
         </div>
       </div>

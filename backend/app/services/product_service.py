@@ -87,6 +87,29 @@ PRODUCT_SYNONYMS = {
     "காபி": ["coffee"],
     "சோப்": ["soap"],
     "பிஸ்கட்": ["biscuit", "parle", "good day"],
+
+    # Romanized Indic (Code-Mixed)
+    "doodh": ["milk", "nandini milk", "dairy"],
+    "dud": ["milk", "nandini milk", "dairy"],
+    "chawal": ["rice", "sona masoori", "basmati"],
+    "akki": ["rice", "sona masoori", "basmati"],
+    "haalu": ["milk", "nandini milk", "dairy"],
+    "halu": ["milk", "nandini milk", "dairy"],
+    "paal": ["milk", "nandini milk", "dairy"],
+    "ari": ["rice", "sona masoori", "basmati"],
+    "arisi": ["rice", "sona masoori", "basmati"],
+    "tel": ["oil", "sunflower"],
+    "yenne": ["oil", "sunflower"],
+    "cheeni": ["sugar"],
+    "shakkar": ["sugar"],
+    "sakkare": ["sugar"],
+    "namak": ["salt"],
+    "uppu": ["salt"],
+    "aata": ["atta", "flour"],
+    "anda": ["egg", "eggs"],
+    "ande": ["egg", "eggs"],
+    "motte": ["egg", "eggs"],
+    "mutta": ["egg", "eggs"],
 }
 
 class ProductService:

@@ -65,7 +65,15 @@ class IntentService:
 
     @staticmethod
     def detect_language(text: str) -> str:
-        """Detect language from Unicode block ranges."""
+        """
+        Detect language from Unicode block ranges and Romanized/code-mixed keywords.
+        Supports:
+        - Kannada: kn
+        - Malayalam: ml
+        - Hindi: hi
+        - Tamil: ta
+        - English: en
+        """
         for char in text:
             # Tamil: 0x0B80 - 0x0BFF (must be before Malayalam since adjacent)
             if '\u0B80' <= char <= '\u0BFF':
@@ -79,6 +87,18 @@ class IntentService:
             # Devanagari (Hindi): 0x0900 - 0x097F
             if '\u0900' <= char <= '\u097F':
                 return "hi"
+
+        lower = text.lower()
+        # Romanized / code-mixed language keyword detection
+        if re.search(r'\b(becho|bika|bikri|jodo|daalo|karo|doodh|chawal|aata|cheeni|shakkar|tel|paani|rupaye|rupya|udhar|kharch|kharcha|bhai|kitna|aaj)\b', lower):
+            return "hi"
+        if re.search(r'\b(mariri|mari|haaki|serisi|madi|akki|haalu|bele|yenne|saala|kharchu|roopayi|eshtu|ivattu|ivattina|baki)\b', lower):
+            return "kn"
+        if re.search(r'\b(vilkkuka|vittu|cherkkuka|cherkku|paal|ari|roopa|chilavu|innathe|ethra|kadam|kudissika)\b', lower):
+            return "ml"
+        if re.search(r'\b(vikkavum|vitru|serkkavum|ser|panunga|paal|arisi|selavu|inraiya|evvalavu|kadan)\b', lower):
+            return "ta"
+
         return "en"
 
     @staticmethod
@@ -96,7 +116,20 @@ class IntentService:
         cleaned = text.strip()
         lower = cleaned.lower()
         detected_lang = IntentService.detect_language(cleaned)
-        effective_lang = detected_lang if detected_lang != "en" else (user_lang or "en")
+
+        # Determine effective language accurately:
+        # If text has regional script or distinct Indic keywords, use detected_lang.
+        # If text has English words ("sell", "rice", "add", "milk"), keep as English.
+        if detected_lang in ["kn", "ml", "hi", "ta"]:
+            effective_lang = detected_lang
+        elif user_lang and user_lang not in ["auto", "indic-auto"]:
+            has_english_words = bool(re.search(r'\b(sell|sold|add|stock|restock|today\'?s?|sales|profit|expense|rice|milk|eggs?|customer|owes|paid)\b', lower))
+            if has_english_words and user_lang != "en":
+                effective_lang = "en"
+            else:
+                effective_lang = user_lang
+        else:
+            effective_lang = detected_lang
 
         # 1. GET_TODAYS_SALES
         if any(w in lower for w in [

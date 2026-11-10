@@ -213,7 +213,7 @@ class GnaniService:
                         or result.get("detected_language")
                         or gnani_lang
                     )
-
+   
                     confidence = float(
                         result.get("confidence", 0.95)
                     )

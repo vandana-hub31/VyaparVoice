@@ -133,7 +133,7 @@ export default function DashboardPage() {
               <p className="text-xs font-bold text-emerald-900 flex items-center gap-1.5">
                 AI Daily Audio Brief
                 <span className="text-[10px] font-normal text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                  Verified Postgres Aggregates
+                  Live Business Summary
                 </span>
               </p>
               <p className="text-xs text-emerald-800 mt-1 leading-relaxed">
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="font-bold text-base text-slate-900">Sales & Profit Trend</h2>
-              <p className="text-xs text-slate-500">Real transaction figures from PostgreSQL</p>
+              <p className="text-xs text-slate-500">Daily business overview</p>
             </div>
             <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-lg text-xs">
               <button

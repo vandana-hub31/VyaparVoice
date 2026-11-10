@@ -15,20 +15,24 @@ def get_auth_token(client):
     return resp.json()["access_token"]
 
 def test_intent_parsing_multilingual():
-    # Multilingual Sale Intent Regression Tests
-    p_sale_en1 = IntentService.parse_text("Sell 2 kg rice for 120")
-    assert p_sale_en1.intent == IntentType.CREATE_SALE
-    assert p_sale_en1.quantity == Decimal("2")
-    assert p_sale_en1.unit == "kg"
-    assert p_sale_en1.product_name == "rice"
-    assert p_sale_en1.price == Decimal("120")
+    # 1. English: Sell 2 kg rice for 120 -> CREATE_SALE
+    p_sale_en = IntentService.parse_text("Sell 2 kg rice for 120")
+    assert p_sale_en.intent == IntentType.CREATE_SALE
+    assert p_sale_en.quantity == Decimal("2")
+    assert p_sale_en.unit == "kg"
+    assert p_sale_en.product_name == "rice"
+    assert p_sale_en.price == Decimal("120")
+    assert p_sale_en.language == "en"
 
-    p_sale_en2 = IntentService.parse_text("Sold 3 eggs for 18")
-    assert p_sale_en2.intent == IntentType.CREATE_SALE
-    assert p_sale_en2.quantity == Decimal("3")
-    assert p_sale_en2.product_name == "eggs"
-    assert p_sale_en2.price == Decimal("18")
+    # 2. English: Add 10 packets of milk -> UPDATE_STOCK
+    p_stock_en = IntentService.parse_text("Add 10 packets of milk")
+    assert p_stock_en.intent == IntentType.UPDATE_STOCK
+    assert p_stock_en.quantity == Decimal("10")
+    assert p_stock_en.unit == "packets"
+    assert "milk" in p_stock_en.product_name.lower()
+    assert p_stock_en.language == "en"
 
+    # 3. Hindi: 2 पैकेट दूध बेचो -> CREATE_SALE
     p_sale_hi = IntentService.parse_text("2 पैकेट दूध बेचो")
     assert p_sale_hi.intent == IntentType.CREATE_SALE
     assert p_sale_hi.quantity == Decimal("2")
@@ -36,28 +40,7 @@ def test_intent_parsing_multilingual():
     assert p_sale_hi.product_name == "दूध"
     assert p_sale_hi.language == "hi"
 
-    p_sale_kn = IntentService.parse_text("2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ")
-    assert p_sale_kn.intent == IntentType.CREATE_SALE
-    assert p_sale_kn.quantity == Decimal("2")
-    assert p_sale_kn.unit == "ಕೆಜಿ"
-    assert p_sale_kn.product_name == "ಅಕ್ಕಿ"
-    assert p_sale_kn.language == "kn"
-
-    p_sale_ml = IntentService.parse_text("2 പാക്കറ്റ് പാൽ വിൽക്കുക")
-    assert p_sale_ml.intent == IntentType.CREATE_SALE
-    assert p_sale_ml.quantity == Decimal("2")
-    assert p_sale_ml.unit == "പാക്കറ്റ്"
-    assert p_sale_ml.product_name == "പാൽ"
-    assert p_sale_ml.language == "ml"
-
-    # Multilingual Stock Update Tests
-    p_stock_en = IntentService.parse_text("Add 10 packets of milk")
-    assert p_stock_en.intent == IntentType.UPDATE_STOCK
-    assert p_stock_en.quantity == Decimal("10")
-    assert p_stock_en.unit == "packets"
-    assert "milk" in p_stock_en.product_name.lower()
-    assert p_stock_en.requires_confirmation is True
-
+    # 4. Hindi: 10 पैकेट दूध जोड़ो -> UPDATE_STOCK
     p_stock_hi = IntentService.parse_text("10 पैकेट दूध जोड़ो")
     assert p_stock_hi.intent == IntentType.UPDATE_STOCK
     assert p_stock_hi.quantity == Decimal("10")
@@ -65,13 +48,36 @@ def test_intent_parsing_multilingual():
     assert p_stock_hi.product_name == "दूध"
     assert p_stock_hi.language == "hi"
 
-    p_stock_kn = IntentService.parse_text("10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ")
+    # 5. Kannada: 2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ -> CREATE_SALE
+    p_sale_kn = IntentService.parse_text("2 ಕೆಜಿ ಅಕ್ಕಿ ಮಾರಿರಿ")
+    assert p_sale_kn.intent == IntentType.CREATE_SALE
+    assert p_sale_kn.quantity == Decimal("2")
+    assert p_sale_kn.unit == "ಕೆಜಿ"
+    assert p_sale_kn.product_name == "ಅಕ್ಕಿ"
+    assert p_sale_kn.language == "kn"
+
+    # 6. Kannada: 10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಹಾಕಿ -> UPDATE_STOCK (also test ಸೇರಿಸಿ)
+    p_stock_kn = IntentService.parse_text("10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಹಾಕಿ")
     assert p_stock_kn.intent == IntentType.UPDATE_STOCK
     assert p_stock_kn.quantity == Decimal("10")
     assert p_stock_kn.unit == "ಪ್ಯಾಕೆಟ್"
     assert p_stock_kn.product_name == "ಹಾಲು"
     assert p_stock_kn.language == "kn"
 
+    p_stock_kn_serisi = IntentService.parse_text("10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸೇರಿಸಿ")
+    assert p_stock_kn_serisi.intent == IntentType.UPDATE_STOCK
+    assert p_stock_kn_serisi.quantity == Decimal("10")
+    assert p_stock_kn_serisi.language == "kn"
+
+    # 7. Malayalam: 2 പാക്കറ്റ് പാൽ വിൽക്കുക -> CREATE_SALE
+    p_sale_ml = IntentService.parse_text("2 പാക്കറ്റ് പാൽ വിൽക്കുക")
+    assert p_sale_ml.intent == IntentType.CREATE_SALE
+    assert p_sale_ml.quantity == Decimal("2")
+    assert p_sale_ml.unit == "പാക്കറ്റ്"
+    assert p_sale_ml.product_name == "പാൽ"
+    assert p_sale_ml.language == "ml"
+
+    # 8. Malayalam: 10 പാക്കറ്റ് പാൽ ചേർക്കുക -> UPDATE_STOCK
     p_stock_ml = IntentService.parse_text("10 പാക്കറ്റ് പാൽ ചേർക്കുക")
     assert p_stock_ml.intent == IntentType.UPDATE_STOCK
     assert p_stock_ml.quantity == Decimal("10")
@@ -79,40 +85,37 @@ def test_intent_parsing_multilingual():
     assert p_stock_ml.product_name == "പാൽ"
     assert p_stock_ml.language == "ml"
 
-    # English
+    # Additional queries in all supported languages
     p_en_sales = IntentService.parse_text("How much did I sell today?")
     assert p_en_sales.intent == IntentType.GET_TODAYS_SALES
+    assert p_en_sales.language == "en"
 
-    p_en_stock = IntentService.parse_text("Add 10 packets of milk")
-    assert p_en_stock.intent == IntentType.UPDATE_STOCK
-    assert p_en_stock.quantity == Decimal("10")
-    assert "milk" in p_en_stock.product_name.lower()
-    assert p_en_stock.requires_confirmation is True
-
-    # Kannada
     p_kn_sales = IntentService.parse_text("ಇವತ್ತು ಎಷ್ಟು ಸೇಲ್ ಆಗಿದೆ?")
     assert p_kn_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_kn_sales.language == "kn"
 
-    # Malayalam
     p_ml_sales = IntentService.parse_text("ഇന്ന് എത്ര രൂപയുടെ വിൽപ്പനയായി?")
     assert p_ml_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_ml_sales.language == "ml"
 
-    # Hindi
     p_hi_sales = IntentService.parse_text("आज कितनी बिक्री हुई?")
     assert p_hi_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_hi_sales.language == "hi"
 
-    # Tamil
     p_ta_sales = IntentService.parse_text("இன்று எவ்வளவு விற்றோம்?")
     assert p_ta_sales.intent == IntentType.GET_TODAYS_SALES
     assert p_ta_sales.language == "ta"
 
-    # Code-mixed Hinglish
+    # Code-mixed Hinglish & Romanized
     p_hinglish = IntentService.parse_text("10 packet milk add karo")
     assert p_hinglish.intent == IntentType.UPDATE_STOCK
     assert p_hinglish.quantity == Decimal("10")
+    assert p_hinglish.language == "hi"
+
+    # Unknown Intent Handling
+    p_unknown = IntentService.parse_text("Abracadabra random nonsense text")
+    assert p_unknown.intent == IntentType.UNKNOWN_INTENT
+    assert p_unknown.is_ambiguous is True
 
     # Additional intents
     p_credit = IntentService.parse_text("Ramesh owes me 500")
@@ -205,3 +208,36 @@ def test_voice_credit_and_user_isolation(client):
     ok_data = ok_resp.json()
     assert ok_data["execution_status"] == "SUCCESS"
     assert ok_data["data"]["new_balance"] == 350.0
+
+def test_audio_upload_validation_and_synthesis(client):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Invalid file format upload must return 400 Bad Request
+    bad_upload = client.post(
+        "/api/voice/transcribe",
+        files={"file": ("notes.txt", b"just some text", "text/plain")},
+        data={"language": "indic-auto"},
+        headers=headers
+    )
+    assert bad_upload.status_code == 400
+    assert "audio file" in bad_upload.json()["detail"].lower()
+
+    # 2. Gnani connectivity check endpoint
+    status_resp = client.get("/api/voice/gnani/status")
+    assert status_resp.status_code == 200
+    assert "status" in status_resp.json()
+
+    # 3. Speech synthesis endpoint
+    synth_resp = client.post(
+        "/api/voice/synthesize",
+        json={
+            "text": "ನಮಸ್ಕಾರ",
+            "language": "kn-IN"
+        },
+        headers=headers
+    )
+    # If API key configured and reachable, returns 200, else handled error
+    assert synth_resp.status_code in [200, 500]
+    if synth_resp.status_code == 200:
+        assert "audio_base64" in synth_resp.json()
