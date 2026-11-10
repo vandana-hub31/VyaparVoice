@@ -29,3 +29,11 @@ yarn-error.log*
 Thumbs.db
 .DS_Store
 
+
+# Environment files
+.env.*
+!.env.example
+
+# Python virtual environments
+.venv/
+venv/

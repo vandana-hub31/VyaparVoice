@@ -1,33 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { translations } from "@/lib/translations";
-import { Mic, Globe, RefreshCw, User, Store, LogOut, CheckCircle2 } from "lucide-react";
+import { Mic, Globe, Store, LogOut } from "lucide-react";
 
 export default function Navbar() {
-  const { user, business, language, setLanguage, logout, seedDemo } = useAuth();
-  const [resetting, setResetting] = useState(false);
-  const [resetSuccess, setResetSuccess] = useState(false);
+  const { user, business, language, setLanguage, logout } = useAuth();
 
   const t = translations[language] || translations.en;
-
-  const handleResetDemo = async () => {
-    setResetting(true);
-    try {
-      await seedDemo();
-      setResetSuccess(true);
-      setTimeout(() => {
-        setResetSuccess(false);
-        window.location.reload();
-      }, 1200);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setResetting(false);
-    }
-  };
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
@@ -58,26 +40,6 @@ export default function Navbar() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Demo Data Reset Button */}
-          <button
-            onClick={handleResetDemo}
-            disabled={resetting}
-            title="Reset sample data"
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors"
-          >
-            {resetSuccess ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span className="hidden sm:inline">Data Ready!</span>
-              </>
-            ) : (
-              <>
-                <RefreshCw className={`w-3.5 h-3.5 ${resetting ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">{t.seedDemo}</span>
-              </>
-            )}
-          </button>
-
           {/* Language Switcher */}
           <div className="relative flex items-center">
             <Globe className="w-4 h-4 text-slate-500 absolute left-2 pointer-events-none" />
