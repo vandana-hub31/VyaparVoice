@@ -306,3 +306,98 @@ def test_daily_summary_voice_command(client):
     assert "ಇವತ್ತಿನ ವ್ಯವಹಾರ ಸಾರಾಂಶ" in data["response_text"]
     assert "today_sales" in data["data"]
     assert "estimated_gross_profit" in data["data"]
+
+def test_multilingual_natural_business_commands():
+    # User-specified natural business commands across all 4 languages
+    phrases = [
+        ("I sold 2 kg rice for 120 rupees.", IntentType.CREATE_SALE, "en", Decimal("2"), "kg", "rice", Decimal("120")),
+        ("Add 10 packets of milk to stock.", IntentType.UPDATE_STOCK, "en", Decimal("10"), "packets", "milk", None),
+        ("How much did I sell today?", IntentType.GET_TODAYS_SALES, "en", None, None, None, None),
+        ("Show today's expenses.", IntentType.GET_EXPENSE_SUMMARY, "en", None, None, None, None),
+        ("What products are running low?", IntentType.GET_LOW_STOCK, "en", None, None, None, None),
+        ("2 ಕೆಜಿ ಅಕ್ಕಿ 120 ರೂಪಾಯಿಗೆ ಮಾರಾಟ ಮಾಡಿದೆ.", IntentType.CREATE_SALE, "kn", Decimal("2"), "ಕೆಜಿ", "ಅಕ್ಕಿ", Decimal("120")),
+        ("10 ಪ್ಯಾಕೆಟ್ ಹಾಲು ಸ್ಟಾಕ್ಗೆ ಸೇರಿಸು.", IntentType.UPDATE_STOCK, "kn", Decimal("10"), "ಪ್ಯಾಕೆಟ್", "ಹಾಲು", None),
+        ("ಇವತ್ತು ಎಷ್ಟು ವ್ಯಾಪಾರ ಆಯಿತು?", IntentType.GET_TODAYS_SALES, "kn", None, None, None, None),
+        ("2 किलो चावल 120 रुपये में बेचा।", IntentType.CREATE_SALE, "hi", Decimal("2"), "किलो", "चावल", Decimal("120")),
+        ("10 पैकेट दूध स्टॉक में जोड़ो।", IntentType.UPDATE_STOCK, "hi", Decimal("10"), "पैकेट", "दूध", None),
+        ("आज मेरी कुल बिक्री कितनी हुई?", IntentType.GET_TODAYS_SALES, "hi", None, None, None, None),
+        ("2 കിലോ അരി 120 രൂപയ്ക്ക് വിറ്റു.", IntentType.CREATE_SALE, "ml", Decimal("2"), "കിലോ", "അരി", Decimal("120")),
+        ("10 പാക്കറ്റ് പാൽ സ്റ്റോക്കിൽ ചേർക്കുക.", IntentType.UPDATE_STOCK, "ml", Decimal("10"), "പാക്കറ്റ്", "പാൽ", None),
+        ("ഇന്ന് എത്ര രൂപയുടെ കച്ചവടം നടന്നു?", IntentType.GET_TODAYS_SALES, "ml", None, None, None, None)
+    ]
+
+    for text, expected_intent, expected_lang, qty, unit, prod, price in phrases:
+        parsed = IntentService.parse_text(text)
+        assert parsed.intent == expected_intent, f"Failed intent for: {text} (got {parsed.intent})"
+        assert parsed.language == expected_lang, f"Failed language for: {text} (got {parsed.language})"
+        if qty is not None:
+            assert parsed.quantity == qty, f"Failed quantity for: {text}"
+        if unit is not None:
+            assert parsed.unit == unit, f"Failed unit for: {text}"
+        if prod is not None:
+            assert prod in parsed.product_name, f"Failed product for: {text} (got {parsed.product_name})"
+        if price is not None:
+            assert parsed.price == price, f"Failed price for: {text} (got {parsed.price})"
+
+def test_empty_and_silent_audio_rejection(client):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. 0-byte upload rejected with 400
+    empty_resp = client.post(
+        "/api/voice/transcribe",
+        files={"file": ("recording.wav", b"", "audio/wav")},
+        data={"language": "indic-auto"},
+        headers=headers
+    )
+    assert empty_resp.status_code == 400
+    assert "empty" in empty_resp.json()["detail"].lower() or "too small" in empty_resp.json()["detail"].lower()
+
+    # 2. Too small (< 100 bytes) audio rejected with 400
+    tiny_resp = client.post(
+        "/api/voice/transcribe",
+        files={"file": ("recording.wav", b"RIFF" + b"\x00" * 40, "audio/wav")},
+        data={"language": "indic-auto"},
+        headers=headers
+    )
+    assert tiny_resp.status_code == 400
+
+def test_multilingual_api_command_execution(client):
+    token = get_auth_token(client)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 1. Hindi sales query
+    hi_resp = client.post("/api/voice/command", json={
+        "transcription": "आज मेरी कुल बिक्री कितनी हुई?",
+        "language": "hi"
+    }, headers=headers)
+    assert hi_resp.status_code == 200
+    assert hi_resp.json()["parsed_intent"]["intent"] == "GET_TODAYS_SALES"
+    assert hi_resp.json()["detected_language"] == "hi"
+
+    # 2. Malayalam sales query
+    ml_resp = client.post("/api/voice/command", json={
+        "transcription": "ഇന്ന് എത്ര രൂപയുടെ കച്ചവടം നടന്നു?",
+        "language": "ml"
+    }, headers=headers)
+    assert ml_resp.status_code == 200
+    assert ml_resp.json()["parsed_intent"]["intent"] == "GET_TODAYS_SALES"
+    assert ml_resp.json()["detected_language"] == "ml"
+
+    # 3. Kannada sales query
+    kn_resp = client.post("/api/voice/command", json={
+        "transcription": "ಇವತ್ತು ಎಷ್ಟು ವ್ಯಾಪಾರ ಆಯಿತು?",
+        "language": "kn"
+    }, headers=headers)
+    assert kn_resp.status_code == 200
+    assert kn_resp.json()["parsed_intent"]["intent"] == "GET_TODAYS_SALES"
+    assert kn_resp.json()["detected_language"] == "kn"
+
+    # 4. English low stock query
+    en_resp = client.post("/api/voice/command", json={
+        "transcription": "What products are running low?",
+        "language": "en"
+    }, headers=headers)
+    assert en_resp.status_code == 200
+    assert en_resp.json()["parsed_intent"]["intent"] == "GET_LOW_STOCK"
+    assert en_resp.json()["detected_language"] == "en"

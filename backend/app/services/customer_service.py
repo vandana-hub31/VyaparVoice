@@ -45,6 +45,7 @@ CUSTOMER_NAME_TRANSLITERATIONS = {
 
     # Malayalam -> English
     "രമേഷ്": "Ramesh",
+    "രമേശ്": "Ramesh",
     "സുരേഷ്": "Suresh",
     "മഹേഷ്": "Mahesh",
     "രാജേഷ്": "Rajesh",

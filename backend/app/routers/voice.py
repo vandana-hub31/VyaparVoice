@@ -1,4 +1,4 @@
-﻿from typing import List, Optional
+from typing import List, Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -40,6 +40,12 @@ async def transcribe_audio_file(
         )
 
     audio_bytes = await file.read()
+    if not audio_bytes or len(audio_bytes) < 100:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Uploaded audio file is empty or too small. Please speak clearly into the microphone."
+        )
+
     if len(audio_bytes) > 25 * 1024 * 1024:  # 25 MB max
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -53,10 +59,16 @@ async def transcribe_audio_file(
     )
 
     if res.get("error") and not res.get("transcription"):
-        # If API key is not configured or failed, report clearly
+        err_msg = res.get("error", "")
+        if "401" in err_msg or "Authentication" in err_msg:
+            status_code = status.HTTP_401_UNAUTHORIZED
+        elif "empty" in err_msg.lower() or "inaudible" in err_msg.lower() or "too brief" in err_msg.lower() or "no audible" in err_msg.lower():
+            status_code = status.HTTP_400_BAD_REQUEST
+        else:
+            status_code = status.HTTP_502_BAD_GATEWAY
         raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY if "401" not in res.get("error", "") else status.HTTP_401_UNAUTHORIZED,
-            detail=res.get("error")
+            status_code=status_code,
+            detail=err_msg
         )
 
     return TranscribeResponse(

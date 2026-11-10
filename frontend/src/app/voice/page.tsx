@@ -112,23 +112,51 @@ export default function VoiceAssistantPage() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // Select best supported MIME type
+      let mimeType = "audio/webm";
+      if (typeof MediaRecorder !== "undefined") {
+        if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
+          mimeType = "audio/webm;codecs=opus";
+        } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
+          mimeType = "audio/ogg;codecs=opus";
+        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
+          mimeType = "audio/mp4";
+        } else if (MediaRecorder.isTypeSupported("audio/wav")) {
+          mimeType = "audio/wav";
+        }
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data && event.data.size > 0) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         stream.getTracks().forEach((track) => track.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        if (audioBlob.size < 100) {
+          setInteractions((prev) => [
+            ...prev,
+            {
+              id: `err-${Date.now()}`,
+              sender: "assistant",
+              text: "No audio was captured. Please check your microphone and try speaking again.",
+              timestamp: new Date()
+            }
+          ]);
+          return;
+        }
         await handleAudioUpload(audioBlob);
       };
 
-      mediaRecorder.start();
+      // Stream chunks every 250ms
+      mediaRecorder.start(250);
       setIsRecording(true);
     } catch (err) {
       console.error("Microphone access denied or error:", err);
@@ -149,13 +177,19 @@ export default function VoiceAssistantPage() {
       const formData = new FormData();
       const extension = blob.type.includes("wav") ? "wav" : blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm";
       formData.append("file", blob, `voice_input.${extension}`);
-      formData.append("language", language === "en" ? "indic-auto" : `${language}-IN`);
 
+      // Map language for Gnani Prisma STT
+      const sttLang = language === "auto" ? "indic-auto" : language === "en" ? "en-IN" : `${language}-IN`;
+      formData.append("language", sttLang);
+
+      // Stage 1: Speech-to-Text Transcription
       const transcribeRes = await api.transcribeAudio(formData);
       const text = transcribeRes.transcription?.trim();
+      const detectedLang = transcribeRes.detected_language || sttLang;
 
       if (text) {
-        await executeCommand(text, transcribeRes.detected_language);
+        // Stage 2: Intent Understanding & Business Command Processing
+        await executeCommand(text, detectedLang);
       } else {
         // Fallback message if audio is silent
         setInteractions((prev) => [
@@ -328,6 +362,14 @@ export default function VoiceAssistantPage() {
         {/* Language selector badge */}
         <div className="flex items-center gap-2 self-start sm:self-center bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs">
           <Languages className="w-4 h-4 text-slate-600 ml-1" />
+          <button
+            onClick={() => setLanguage("auto")}
+            className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${
+              language === "auto" ? "bg-white text-vyapar-700 shadow-xs" : "text-slate-600"
+            }`}
+          >
+            Auto
+          </button>
           <button
             onClick={() => setLanguage("kn")}
             className={`px-2.5 py-1 rounded-lg font-semibold transition-all ${

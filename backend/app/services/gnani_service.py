@@ -22,29 +22,62 @@ _tts_cache: Dict[str, str] = {}
 
 # Task: Convert browser-recorded audio into WAV format using FFmpeg.
 def convert_audio_to_wav(audio_bytes: bytes) -> bytes:
+    if not audio_bytes or len(audio_bytes) < 100:
+        raise ValueError("Audio recording is empty or too short. Please speak clearly into the microphone.")
+
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
 
-    result = subprocess.run(
-        [
-            ffmpeg_exe,
-            "-i", "pipe:0",
-            "-vn",
-            "-acodec", "pcm_s16le",
-            "-ar", "16000",
-            "-ac", "1",
-            "-f", "wav",
-            "pipe:1",
-        ],
-        input=audio_bytes,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        check=True,
-    )
+    # Write to a temporary file so FFmpeg can seek container formats (e.g. mp4, m4a, webm, ogg)
+    import tempfile
+    import os
 
-    if not result.stdout:
-        raise RuntimeError("FFmpeg produced empty audio output.")
+    with tempfile.NamedTemporaryFile(suffix=".input", delete=False) as in_file:
+        in_file.write(audio_bytes)
+        in_path = in_file.name
 
-    return result.stdout
+    out_path = in_path + ".wav"
+
+    try:
+        result = subprocess.run(
+            [
+                ffmpeg_exe,
+                "-y",
+                "-i", in_path,
+                "-vn",
+                "-acodec", "pcm_s16le",
+                "-ar", "16000",
+                "-ac", "1",
+                "-f", "wav",
+                out_path,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+
+        with open(out_path, "rb") as f:
+            wav_bytes = f.read()
+
+        if not wav_bytes or len(wav_bytes) < 1000:
+            raise ValueError("Audio recording is too brief to contain clear speech.")
+
+        # Check silence: inspect 16-bit PCM samples after the 44-byte WAV header
+        if len(wav_bytes) > 44:
+            pcm_data = wav_bytes[44:]
+            chunk = pcm_data[:32000]
+            if chunk:
+                max_val = max(abs(int.from_bytes(chunk[i:i+2], byteorder="little", signed=True)) for i in range(0, len(chunk)-1, 2))
+                if max_val < 50:
+                    raise ValueError("Audio recording contains no audible speech. Please speak into the microphone.")
+
+        return wav_bytes
+    finally:
+        for p in [in_path, out_path]:
+            if os.path.exists(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
 
 
 class GnaniService:
@@ -55,16 +88,23 @@ class GnaniService:
     Auth: X-API-Key-ID header
     """
 
+    SUPPORTED_TIMBRE_VOICES = {
+        "Shivani", "Avinash", "Lakshmi", "Kalpana", "Shubham", "Prakash",
+        "Devansh", "Yashraj", "Chetana", "Vasudha", "Harshad", "Riyaa", "Tarika"
+    }
+
     @staticmethod
     def get_api_key() -> Optional[str]:
         key = settings.GNANI_API_KEY.strip() if settings.GNANI_API_KEY else ""
         return key if len(key) > 0 else None
 
     @staticmethod
-    def map_language_code(short_code: str) -> str:
+    def map_language_code(short_code: Optional[str]) -> str:
         """
         Maps short regional codes to Gnani BCP-47 language codes.
         """
+        if not short_code:
+            return "indic-auto"
         code = short_code.lower().strip()
 
         mapping = {
@@ -79,6 +119,9 @@ class GnaniService:
             "ta": "ta-IN",
             "tamil": "ta-IN",
             "auto": "indic-auto",
+            "indic-auto": "indic-auto",
+            "autodetect": "indic-auto",
+            "auto-detect": "indic-auto",
         }
 
         return mapping.get(code, short_code)
@@ -101,7 +144,7 @@ class GnaniService:
 
             return {
                 "transcription": "",
-                "detected_language": gnani_lang,
+                "detected_language": gnani_lang if gnani_lang != "indic-auto" else "en-IN",
                 "confidence": 0.0,
                 "provider": "gnani_prisma_unconfigured",
                 "error": (
@@ -119,6 +162,15 @@ class GnaniService:
             audio_bytes = convert_audio_to_wav(audio_bytes)
             filename = "voice_input.wav"
 
+        except ValueError as e:
+            return {
+                "transcription": "",
+                "detected_language": gnani_lang if gnani_lang != "indic-auto" else "en-IN",
+                "confidence": 0.0,
+                "provider": "gnani_prisma",
+                "error": str(e)
+            }
+
         except subprocess.CalledProcessError as e:
             error_message = e.stderr.decode(
                 "utf-8",
@@ -131,7 +183,7 @@ class GnaniService:
 
             return {
                 "transcription": "",
-                "detected_language": gnani_lang,
+                "detected_language": gnani_lang if gnani_lang != "indic-auto" else "en-IN",
                 "confidence": 0.0,
                 "provider": "gnani_prisma",
                 "error": (
@@ -148,7 +200,7 @@ class GnaniService:
 
             return {
                 "transcription": "",
-                "detected_language": gnani_lang,
+                "detected_language": gnani_lang if gnani_lang != "indic-auto" else "en-IN",
                 "confidence": 0.0,
                 "provider": "gnani_prisma",
                 "error": (
@@ -185,41 +237,61 @@ class GnaniService:
                     result = response.json()
 
                     transcript = (
-                        result.get("transcription")
+                        result.get("transcript")
+                        or result.get("transcription")
                         or result.get("text")
-                        or result.get("transcript")
+                        or (result.get("results") and isinstance(result["results"], list) and len(result["results"]) > 0 and result["results"][0].get("transcript"))
+                        or (result.get("data") and isinstance(result["data"], dict) and (result["data"].get("transcript") or result["data"].get("transcription") or result["data"].get("text")))
+                        or result.get("asr_output")
                         or ""
                     )
 
-                    # Detect language from Indic Unicode script blocks in transcript
+                    if isinstance(transcript, list):
+                        transcript = " ".join(str(t) for t in transcript)
+                    transcript = str(transcript).strip()
+
+                    # 1. Prefer language detected by Gnani when valid
+                    gnani_detected = (
+                        result.get("detected_language_code")
+                        or result.get("detected_language")
+                        or (result.get("data") and isinstance(result["data"], dict) and (result["data"].get("detected_language_code") or result["data"].get("detected_language")))
+                    )
+
+                    valid_gnani_lang = None
+                    if gnani_detected and isinstance(gnani_detected, str):
+                        clean_detected = gnani_detected.strip().lower()
+                        if clean_detected not in ["auto", "indic-auto", "unknown", "none", ""]:
+                            valid_gnani_lang = GnaniService.map_language_code(clean_detected)
+
+                    # 2. Script-based fallback detection
                     script_lang = None
                     for char in transcript:
-                        if '\u0B80' <= char <= '\u0BFF':
-                            script_lang = "ta-IN"
-                            break
-                        if '\u0C80' <= char <= '\u0CFF':
+                        if '\u0C80' <= char <= '\u0CFF': # Kannada
                             script_lang = "kn-IN"
                             break
-                        if '\u0D00' <= char <= '\u0D7F':
+                        elif '\u0D00' <= char <= '\u0D7F': # Malayalam
                             script_lang = "ml-IN"
                             break
-                        if '\u0900' <= char <= '\u097F':
+                        elif '\u0900' <= char <= '\u097F': # Devanagari (Hindi)
                             script_lang = "hi-IN"
                             break
+                        elif '\u0B80' <= char <= '\u0BFF': # Tamil
+                            script_lang = "ta-IN"
+                            break
 
-                    detected = (
-                        script_lang
-                        or result.get("detected_language_code")
-                        or result.get("detected_language")
-                        or gnani_lang
-                    )
-   
+                    if valid_gnani_lang and valid_gnani_lang not in ["auto", "indic-auto"]:
+                        detected = valid_gnani_lang
+                    elif script_lang:
+                        detected = script_lang
+                    else:
+                        detected = gnani_lang if gnani_lang not in ["auto", "indic-auto"] else "en-IN"
+
                     confidence = float(
                         result.get("confidence", 0.95)
                     )
 
                     return {
-                        "transcription": transcript.strip(),
+                        "transcription": transcript,
                         "detected_language": detected,
                         "confidence": confidence,
                         "provider": "gnani_prisma",
@@ -321,9 +393,12 @@ class GnaniService:
         if gnani_lang == "indic-auto":
             gnani_lang = "en-IN"
 
+        # Task: Ensure requested voice is supported, otherwise fallback safely to Shivani
+        selected_voice = voice if voice in GnaniService.SUPPORTED_TIMBRE_VOICES else "Shivani"
+
         # Task: Check cache before spending Gnani credits.
         cache_key = hashlib.md5(
-            f"{clean_text}:{gnani_lang}:{voice}:{speed}".encode("utf-8")
+            f"{clean_text}:{gnani_lang}:{selected_voice}:{speed}".encode("utf-8")
         ).hexdigest()
 
         if cache_key in _tts_cache:
@@ -345,7 +420,7 @@ class GnaniService:
         payload = {
             "text": clean_text,
             "model": settings.GNANI_TTS_MODEL or "timbre-v3.0",
-            "voice": voice or "Shivani",
+            "voice": selected_voice,
             "language": gnani_lang,
             "speed": speed,
             "audio_config": {
