@@ -85,8 +85,9 @@ Unlike a static prototype or superficial demo, VyaparVoice executes verified Pos
 | `test_intent_parsing_multilingual` | ✅ PASSED |
 | `test_voice_confirmation_workflow` | ✅ PASSED |
 | `test_voice_credit_and_user_isolation` | ✅ PASSED |
+| `test_audio_upload_validation_and_synthesis` | ✅ PASSED |
 
-**Total: 7/7 passed** — last run 2026-11-09
+**Total: 8/8 passed** — last run 2026-11-10
 
 ### End-to-End Voice Command Verification
 
@@ -112,8 +113,8 @@ All 8 multilingual voice commands produce `PENDING_CONFIRMATION` with correct la
 | Frontend (Next.js dev) | http://localhost:3000 | ✅ Running |
 | Backend (FastAPI uvicorn) | http://127.0.0.1:8000 | ✅ Running |
 | PostgreSQL | localhost:5432 | ✅ Running |
-| Gnani Prisma STT | https://api.vachana.ai/stt/v3 | ⚙️ Requires `GNANI_API_KEY` in `.env` |
-| Gnani Timbre TTS | https://api.vachana.ai/api/v1/tts/inference | ⚙️ Requires `GNANI_API_KEY` in `.env` |
+| Gnani Prisma STT | https://api.vachana.ai/stt/v3 | ✅ Active with Challenge Key |
+| Gnani Timbre TTS | https://api.vachana.ai/api/v1/tts/inference | ✅ Active with Challenge Key |
 
 ---
 
@@ -121,6 +122,11 @@ All 8 multilingual voice commands produce `PENDING_CONFIRMATION` with correct la
 
 | Date | Change |
 |---|---|
+| 2026-11-10 | Fixed language auto-detection for English commands preventing forced Kannada overrides; added Romanized code-mixed keyword support in `intent_service.py` |
+| 2026-11-10 | Added Romanized Indic synonyms (doodh, akki, haalu, paal, etc.) to `product_service.py` |
+| 2026-11-10 | Audio upload format safety (.wav/.webm fallback) and user-friendly error messages in `voice/page.tsx` |
+| 2026-11-10 | Cleaned all technical/developer terms (PostgreSQL, FastAPI, SQLAlchemy, API endpoints, raw errors) from public UI across all 7 frontend pages/components |
+| 2026-11-10 | Added `test_audio_upload_validation_and_synthesis` to test suite (8/8 passing) |
 | 2026-11-09 | Multilingual product synonym lookup (79 entries) in `product_service.py` |
 | 2026-11-09 | Customer name transliteration (51 entries) in `customer_service.py` |
 | 2026-11-09 | Script-based language detection after STT in `gnani_service.py` |
